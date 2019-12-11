@@ -26,7 +26,10 @@ def post_cosine(network, snapshots,duals):
         conductance = 1/passive_branches.at[branch, attribute_r]
         bt = branch[0]
         bn = branch[1]
-        xU = (passive_branches.at[branch,attribute_s]+6800)/passive_branches.at[branch, attribute_r] + 6800
+        if(passive_branches.at[branch,"s_nom_extendable"]):
+            xU = (passive_branches.at[branch,attribute_s]+6800)/passive_branches.at[branch, attribute_r]
+        else:
+            xU = passive_branches.at[branch,"s_nom"]
         for sn in snapshots:
             for i in list(range(nrOfIntervalls)): 
                 lower = ((i/nrOfIntervalls) * xU)
@@ -52,7 +55,10 @@ def cosine(network,snapshots):
         attribute_r = "r_pu_eff" if network.sub_networks.at[sub,"carrier"] == "AC" else "x_pu_eff"
         attribute_s = "s_nom"
         conductance = 1/passive_branches.at[branch, attribute_r]
-        xU = (passive_branches.at[branch,attribute_s]+6800)/passive_branches.at[branch, attribute_r] + 6800
+        if(passive_branches.at[branch,"s_nom_extendable"]):
+            xU = (passive_branches.at[branch,attribute_s]+6800)/passive_branches.at[branch, attribute_r]
+        else:
+            xU = passive_branches.at[branch,"s_nom"]
         bt = branch[0]
         bn = branch[1]
         for sn in snapshots:
@@ -102,7 +108,11 @@ def quadratic(network,snapshots):
         attribute_r = "r_pu_eff" if network.sub_networks.at[sub,"carrier"] == "AC" else "x_pu_eff"
         conductance = 1/passive_branches.at[branch, attribute_r]
         r = passive_branches.at[branch, attribute_r]
-        xU = (passive_branches.at[branch,attribute_s]+6800)/passive_branches.at[branch, attribute_r]
+        if(passive_branches.at[branch,"s_nom_extendable"]):
+            xU = (passive_branches.at[branch,attribute_s]+6800)/passive_branches.at[branch, attribute_r]
+        else:
+            xU = passive_branches.at[branch,"s_nom"]
+
         xL = -xU
         for sn in snapshots:
             lhs = LExpression([(1,network.model.voltage_angles[bus0,sn]),(-1,network.model.voltage_angles[bus1,sn]),(-1,network.model.delta_angle[bt,bn,sn])])
