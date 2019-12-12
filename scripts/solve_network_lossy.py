@@ -1,92 +1,27 @@
-# solves linear optimal power flow considering line losses iteratively while updating reactances
-"""
-Relevant Settings
------------------
-.. code:: yaml
-    (electricity:)
-        (BAU_mincapacities:)
-        (SAFE_reservemargin:)
-    solving:
-        tmpdir:
-        options:
-            formulation:
-            clip_p_max_pu:
-            load_shedding:
-            noisy_costs:
-            nhours:
-            min_iterations:
-            max_iterations:
-        solver:
-            name:
-            (solveroptions):
-    (plotting:)
-        (conv_techs:)
-.. seealso::
-    Documentation of the configuration file ``config.yaml`` at
-    :ref:`electricity_cf`, :ref:`solving_cf`, :ref:`plotting_cf`
-Inputs
-------
-- ``networks/{network}_s{simpl}_{clusters}_l{ll}_{opts}.nc``: confer :ref:`prepare`
-Outputs
--------
-- ``results/networks/{network}_s{simpl}_{clusters}_l{ll}_{opts}.nc``: Solved PyPSA network including optimisation results
-    .. image:: ../img/results.png
-        :scale: 40 %
-Description
------------
-Total annual system costs are minimised with PyPSA. The full formulation of the
-linear optimal power flow (plus investment planning
-is provided in the
-`documentation of PyPSA <https://pypsa.readthedocs.io/en/latest/optimal_power_flow.html#linear-optimal-power-flow>`_.
-Additionaly some extra constraints from :mod:`prepare_network` are added.
-Solving the network in multiple iterations is motivated through the dependence of transmission line capacities and impedances.
-As lines are expanded their electrical parameters change, which renders the optimisation bilinear even if the power flow
-equations are linearized.
-To retain the computational advantage of continuous linear programming, a sequential linear programming technique
-is used, where in between iterations the line impedances are updated.
-Details (and errors made through this heuristic) are discussed in the paper
-- Fabian Neumann and Tom Brown. `Heuristics for Transmission Expansion Planning in Low-Carbon Energy System Models <https://arxiv.org/abs/1907.10548>`_), *16th International Conference on the European Energy Market*, 2019. `arXiv:1907.10548 <https://arxiv.org/abs/1907.10548>`_.
-.. warning::
-    Capital costs of existing network components are not included in the objective function,
-    since for the optimisation problem they are just a constant term (no influence on optimal result).
-    Therefore, these capital costs are not included in ``network.objective``!
-    If you want to calculate the full total annual system costs add these to the objective value.
-.. tip::
-    The rule :mod:`solve_all_networks` runs
-    for all ``scenario`` s in the configuration file
-    the rule :mod:`solve_network`.
-"""
 import pypsa
-from pypsa import opf
 import numpy as np
+import pandas as pd
 import os
-import subprocess
-from tempfile import mkstemp
-#from vresutils import load as vload
-
-import pandas as pd
-import scipy.io
-import re
+import gc
 import logging
-from pypsa.opt import LConstraint, l_constraint, LExpression
 import pyomo.kernel as pmo 
-from six import iteritems, itervalues, string_types
 import pyomo.environ as penv
-import pypsa
+
+from pypsa import opf
+from pypsa.opt import LConstraint, l_constraint, LExpression
+from pypsa.descriptors import free_output_series_dataframes
+from six import iteritems, itervalues, string_types
 from pyomo.environ import Constraint, Objective, Var, ComponentUID
-import numpy as np
-import pandas as pd
+from vresutils.benchmark import memory_logger
+
 import logging
 logger = logging.getLogger(__name__)
-import gc
-from loss_models import *
-import pypsa
-from pypsa.descriptors import free_output_series_dataframes
+
+# import loss models from ./loss_models.py
+from _loss_models import *
 
 # Suppress logging of the slack bus choices
 pypsa.pf.logger.setLevel(logging.WARNING)
-
-from vresutils.benchmark import memory_logger
 
 
 def patch_pyomo_tmpdir(tmpdir):
@@ -367,17 +302,6 @@ def solve_network(n, config=None, solver_log=None, opts=None, callback=None,
     return n
 
 if __name__ == "__main__":
-    loss = snakemake.wildcards.loss
-    # Detect running outside of snakemake and mock snakemake for testing
-    if 'snakemake' not in globals():
-        from vresutils.snakemake import MockSnakemake, Dict
-        snakemake = MockSnakemake(
-            wildcards=dict(network='elec', simpl='', clusters='45', lv='1.0', opts='Co2L-3H'),
-            input=["networks/{network}_s{simpl}_{clusters}_lv{lv}_{opts}.nc"],
-            output=["results/networks/s{simpl}_{clusters}_lv{lv}_{opts}.nc"],
-            log=dict(solver="logs/{network}_s{simpl}_{clusters}_lv{lv}_{opts}_solver.log",
-                     python="logs/{network}_s{simpl}_{clusters}_lv{lv}_{opts}_python.log")
-        )
 
     tmpdir = snakemake.config['solving'].get('tmpdir')
     if tmpdir is not None:
@@ -387,22 +311,15 @@ if __name__ == "__main__":
                         level=snakemake.config['logging_level'])
 
     with memory_logger(filename=getattr(snakemake.log, 'memory', None), interval=30.) as mem:
-        n = pypsa.Network(snakemake.input[0])
-        #n.pf(distribute_slack=True)
-        n = prepare_network(n)
-        try:
-            n = solve_network(n, extra_functionality = globals()[f"{loss}"], extra_postprocessing = globals()[f"post_{loss}"])
         
+        n = pypsa.Network(snakemake.input[0])
+        n = prepare_network(n)
+        
+        try:
+            n = solve_network(n, extra_functionality=globals()[f"{loss}"],
+                                 extra_postprocessing=globals()[f"post_{loss}"])
         except KeyError:
-            raise RuntimeError(f"loss function has not been defined")
-        #if snakemake.config['loss'] == 'lldc':
-         #   n = solve_network(n, extra_functionality = lldc, extra_postprocessing = post_lldc)
-        #elif snakemake.config['loss'] == 'cosine':
-         #   n = solve_network(n, extra_functionality = cosine, extra_postprocessing = post_cosine)
-        #elif snakemake.config['loss'] == 'quadratic':
-        #    n = solve_network(n, extra_functionality = quadratic, extra_postprocessing = post_quadratic)
-        #else:
-         #   Logger.info("Loss algorithm unknown")
+            raise RuntimeError(f"The loss function {loss} has not been defined")
             
         n.export_to_netcdf(snakemake.output.nc)
         n.export_to_csv_folder(snakemake.output.csv)
