@@ -49,26 +49,26 @@ rule solve_lossy_network:
 
 rule lossy_power_flow_dist: 
     input: "results/networks/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}_{loss}.nc"
-    output: nc ="results/networks/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}_{loss}_dist_slack",
-            csv=directory("results/csv/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}_{loss}_dist_slack")
+    output: nc ="results/networks/distslackloss/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}_{loss}.nc",
+            csv=directory("results/csv/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}_{loss}")
     script: "scripts/dist_slack.py"
 
 rule lossy_power_flow: 
     input: "results/networks/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}_{loss}.nc"
-    output: nc = "results/networks/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}_{loss}_nr",
-            csv=directory("results/csv/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}_{loss}_nr")
+    output: nc = "results/networks/pfloss/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}_{loss}.nc",
+            csv=directory("results/csv/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}_{loss}")
     script: "scripts/newton_raphson.py"
 
 rule power_flow_dist: 
     input: pypsaeur("results/networks/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}.nc")
-    output: nc ="results/networks/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}_dist_slack",
-            csv=directory("results/csv/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}_dist_slack")
+    output: nc ="results/networks/distslack/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}.nc",
+            csv=directory("results/csv/distslack/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}")
     script: "scripts/dist_slack.py"
 
 rule power_flow: 
     input: pypsaeur("results/networks/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}.nc")
-    output: nc ="results/networks/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}_nr",
-            csv=directory("results/csv/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}_nr")
+    output: nc ="results/networks/pf/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}.nc",
+            csv=directory("results/csv/pf/{network}_s{simpl}_{clusters}_ec_l{ll}_{opts}")
     script: "scripts/newton_raphson.py"
 
 rule plot_lossy_network:
