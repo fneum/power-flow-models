@@ -3,6 +3,7 @@ import pypsa
 import logging
 logger = logging.getLogger(__name__)
 
+
 if __name__ == "__main__":
 
     logging.basicConfig(filename=snakemake.log.python,
@@ -22,7 +23,7 @@ if __name__ == "__main__":
 
     #Need some PQ buses so that Jacobian doesn't break
     init_bus = n.buses.index[0]
-    pq_gen_selection = n.generators[n.generators.bus == init_bus] # TODO select first bus
+    pq_gen_selection = n.generators[n.generators.bus==init_bus] # TODO select first bus
     n.generators.loc[pq_gen_selection.index,"control"] = "PQ"
     
     n.pf(distribute_slack=slack)
