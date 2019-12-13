@@ -1,0 +1,4 @@
+.snakemake
+.vscode
+dconf
+results
