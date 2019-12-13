@@ -169,7 +169,7 @@ def quadratic(network, snapshots):
                     (-1,network.model.voltage_angles[bus1,sn]),
                     (-1,network.model.delta_angle[bt,bn,sn])
                   ])
-            differences[bt,bn,sn] = LConstraint(lhs,"==",LExpression())
+            differences[bt,bn,sn] = LConstraint(lhs, "==", LExpression())
             
             # bounds 
             lhs = LExpression([(1,network.model.delta_angle[bt,bn,sn])],-xU)
@@ -191,7 +191,7 @@ def quadratic(network, snapshots):
 
                 lhs = LExpression([(1,network.model.delta_angle_sq[bt,bn,sn])])
                 rhs = LExpression([(2*lower,network.model.delta_angle[bt,bn,sn])],(-lower**2))
-                intervals[i,bt,bn,sn] = LConstraint(lhs,">=",rhs)
+                intervals[i,bt,bn,sn] = LConstraint(lhs, ">=" ,rhs)
 
             # add p_sq to nodal power balance
             # use of ._body because of pyomo bug
