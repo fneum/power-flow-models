@@ -24,9 +24,9 @@ def post_cosine(network, snapshots, duals):
         b = 1/x
 
         if passive_branches.at[branch,"s_nom_extendable"]:
-            xU = passive_branches.at[branch,"s_nom_max"] * b
+            xU = passive_branches.at[branch,"s_nom_max"] * x
         else:
-            xU = passive_branches.at[branch,"s_nom"] * b
+            xU = passive_branches.at[branch,"s_nom"] * x
         
         for sn in snapshots:
             for i in range(num_intervals): 
@@ -74,9 +74,9 @@ def cosine(network, snapshots):
         b = 1/x
         
         if passive_branches.at[branch,"s_nom_extendable"]:
-            xU = passive_branches.at[branch,"s_nom_max"] * b
+            xU = passive_branches.at[branch,"s_nom_max"] * x
         else:
-            xU = passive_branches.at[branch,"s_nom"] * b
+            xU = passive_branches.at[branch,"s_nom"] * x
 
         for sn in snapshots:
             for i in range(num_intervals): 
@@ -159,9 +159,9 @@ def quadratic(network, snapshots):
         g = 1/r
         
         if passive_branches.at[branch,"s_nom_extendable"]:
-            xU = passive_branches.at[branch,"s_nom_max"] * b
+            xU = passive_branches.at[branch,"s_nom_max"] * x
         else:
-            xU = passive_branches.at[branch,"s_nom"] * b
+            xU = passive_branches.at[branch,"s_nom"] * x
 
         for sn in snapshots:
             lhs = LExpression([
