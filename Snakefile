@@ -5,7 +5,6 @@ subworkflow pypsaeur:
     configfile: "config.pypsaeur.yaml"
 
 wildcard_constraints:
-    ll="(v|c)([0-9\.]+|opt|all)|all", # line limit, can be volume or cost
     clusters="[0-9]+m?|all",
     opts="[-+a-zA-Z0-9\.]*",
     loss="[-+a-zA-Z0-9]+",
@@ -28,43 +27,43 @@ def memory(w):
 # LOPF WITH LOSSY FORMULATIONS RULES
 
 rule solve_lossy_network:
-    input: pypsaeur("networks/elec_s_{clusters}_ec_l{ll}_{opts}.nc")
+    input: pypsaeur("networks/elec_s_{clusters}_ec_lcopt_{opts}.nc")
     output: 
-      nc="results/networks/elec_s_{clusters}_ec_l{ll}_{opts}_L{loss}.nc",
-      csv=directory("results/csv/elec_s_{clusters}_ec_l{ll}_{opts}_L{loss}")
+      nc="results/networks/elec_s_{clusters}_ec_lcopt_{opts}_L{loss}.nc",
+      csv=directory("results/csv/elec_s_{clusters}_ec_lcopt_{opts}_L{loss}")
     log:
-        solver="logs/elec_s_{clusters}_l{ll}_{opts}_L{loss}_solver.log",
-        python="logs/elec_s_{clusters}_l{ll}_{opts}_L{loss}_python.log",
-        memory="logs/elec_s_{clusters}_l{ll}_{opts}_L{loss}_memory.log"
+        solver="logs/elec_s_{clusters}_lcopt_{opts}_L{loss}_solver.log",
+        python="logs/elec_s_{clusters}_lcopt_{opts}_L{loss}_python.log",
+        memory="logs/elec_s_{clusters}_lcopt_{opts}_L{loss}_memory.log"
     threads: 4
     resources: mem=memory
     script: "scripts/solve_network_lossy.py"
 
 rule solve_all_lossy_networks:
     input: 
-        expand("results/networks/elec_s_{clusters}_ec_l{ll}_{opts}_L{loss}.nc",
+        expand("results/networks/elec_s_{clusters}_ec_lcopt_{opts}_L{loss}.nc",
                **config["scenario"])
 
 
 # PF CHECK RULES
 
 rule pf_for_lossy_network: 
-    input: "results/networks/elec_s_{clusters}_ec_l{ll}_{opts}_L{loss}.nc"
-    output: nc="results/pf/elec_s_{clusters}_ec_l{ll}_{opts}_L{loss}_S{slack}.nc",
-            csv=directory("results/csv/elec_s_{clusters}_ec_l{ll}_{opts}_L{loss}_S{slack}")
+    input: "results/networks/elec_s_{clusters}_ec_lcopt_{opts}_L{loss}.nc"
+    output: nc="results/pf/elec_s_{clusters}_ec_lcopt_{opts}_L{loss}_S{slack}.nc",
+            csv=directory("results/csv/elec_s_{clusters}_ec_lcopt_{opts}_L{loss}_S{slack}")
     script: "scripts/check_power_flow.py"
 
 rule pf_for_lossless_network: 
-    input: pypsaeur("results/networks/elec_s_{clusters}_ec_l{ll}_{opts}.nc")
-    output: nc="results/pf/elec_s_{clusters}_ec_l{ll}_{opts}_S{slack}.nc",
-            csv=directory("results/csv/elec_s_{clusters}_ec_l{ll}_{opts}_S{slack}")
+    input: pypsaeur("results/networks/elec_s_{clusters}_ec_lcopt_{opts}.nc")
+    output: nc="results/pf/elec_s_{clusters}_ec_lcopt_{opts}_S{slack}.nc",
+            csv=directory("results/csv/elec_s_{clusters}_ec_lcopt_{opts}_S{slack}")
     script: "scripts/check_power_flow.py"
 
 rule pf_for_all:
     input: 
-        lossy=expand("results/pf/elec_s_{clusters}_ec_l{ll}_{opts}_L{loss}_S{slack}.nc",
+        lossy=expand("results/pf/elec_s_{clusters}_ec_lcopt_{opts}_L{loss}_S{slack}.nc",
                      **config["scenario"]),
-        lossless=expand("results/pf/elec_s_{clusters}_ec_l{ll}_{opts}_S{slack}.nc",
+        lossless=expand("results/pf/elec_s_{clusters}_ec_lcopt_{opts}_S{slack}.nc",
                      **config["scenario"])
 
 # EVALUATION
@@ -73,11 +72,11 @@ rule pf_for_all:
 
 # rule plot_lossy_network:
 #     input:
-#         network="results/networks/elec_s_{clusters}_ec_l{ll}_{opts}_L{loss}.nc",
+#         network="results/networks/elec_s_{clusters}_ec_lcopt_{opts}_L{loss}.nc",
 #         tech_costs=COSTS
 #     output:
-#         only_map="results/plots/elec_s_{clusters}_ec_l{ll}_{opts}_{attr}_L{loss}.{ext}",
-#         ext="results/plots/elec_s_{clusters}_ec_l{ll}_{opts}_{attr}_ext_L{loss}.{ext}"
+#         only_map="results/plots/elec_s_{clusters}_ec_lcopt_{opts}_{attr}_L{loss}.{ext}",
+#         ext="results/plots/elec_s_{clusters}_ec_lcopt_{opts}_{attr}_ext_L{loss}.{ext}"
 #     script: "scripts/plot_network.py"
 
 # def input_make_summary(w):
@@ -89,7 +88,7 @@ rule pf_for_all:
 #     else:
 #         ll = w.ll
 #     return ([COSTS] +
-#             expand("results/networks/elec_s_{clusters}_ec_l{ll}_{opts}_L{loss}.nc",
+#             expand("results/networks/elec_s_{clusters}_ec_lcopt_{opts}_L{loss}.nc",
 #                    network=w.network,
 #                    ll=ll,
 #                    **{k: config["scenario"][k] if getattr(w, k) == "all" else getattr(w, k)
@@ -97,12 +96,12 @@ rule pf_for_all:
 
 # rule make_summary:
 #     input: input_make_summary
-#     output: directory("results/summaries/elec_s_{clusters}_ec_l{ll}_{opts}_{country}_L{loss}")
+#     output: directory("results/summaries/elec_s_{clusters}_ec_lcopt_{opts}_{country}_L{loss}")
 #     script: "scripts/make_summary.py"
 
 # rule plot_summary:
-#     input: "results/summaries/elec_s_{clusters}_ec_l{ll}_{opts}_{country}_L{loss}"
-#     output: "results/plots/summary_{summary}_elec_s_{clusters}_ec_l{ll}_{opts}_{country}_L{loss}.{ext}"
+#     input: "results/summaries/elec_s_{clusters}_ec_lcopt_{opts}_{country}_L{loss}"
+#     output: "results/plots/summary_{summary}_elec_s_{clusters}_ec_lcopt_{opts}_{country}_L{loss}.{ext}"
 #     script: "scripts/plot_summary.py"
 
 # def input_plot_p_nom_max(wildcards):
