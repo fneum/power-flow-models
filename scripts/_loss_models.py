@@ -10,26 +10,29 @@ from pyomo.environ import Var
 def post_cosine(network, snapshots, duals):
 
     num_intervals = 10
+    
     passive_branches = network.passive_branches()
 
     loss = pd.DataFrame(0, index=snapshots, columns=network.lines.index)
 
     for branch in passive_branches.index:
         sub = passive_branches.at[branch,"sub_network"]
-        conductance = 1/passive_branches.at[branch,"r_pu_eff"]
         bt = branch[0]
         bn = branch[1]
 
+        x = passive_branches.at[branch,"x_pu_eff"]
+        b = 1/x
+
         if passive_branches.at[branch,"s_nom_extendable"]:
-            xU = (passive_branches.at[branch,"s_nom"] + 6800) / passive_branches.at[branch,"r_pu_eff"]
+            xU = passive_branches.at[branch,"s_nom_max"] * b
         else:
-            xU = passive_branches.at[branch,"s_nom"]
+            xU = passive_branches.at[branch,"s_nom"] * b
         
         for sn in snapshots:
-            for i in list(range(num_intervals)): 
+            for i in range(num_intervals): 
                 lower = xU * i / num_intervals
                 max_val = lower + ( xU / num_intervals )
-                slope = 2 * conductance * np.sin(lower)
+                slope = 2 * b * np.sin(lower)
                 
                 loss.loc[sn,bt] = 0.5 * slope * (
                                     network.model.delta_angle_positive[bt,bn,sn,i] + 
@@ -44,9 +47,11 @@ def post_cosine(network, snapshots, duals):
     network.lines_t["loss"] = loss
 
 
-def cosine(network,snapshots):
+# https://www.iit.comillas.edu/aramos/papers/losses.pdf
+def cosine(network, snapshots):
 
     num_intervals = 10
+
     passive_branches = network.passive_branches()
     
     network.model.delta_angle_positive = Var(list(passive_branches.index),
@@ -64,45 +69,47 @@ def cosine(network,snapshots):
         sub = passive_branches.at[branch,"sub_network"]
         bt = branch[0]
         bn = branch[1]
-        conductance = 1/passive_branches.at[branch,"r_pu_eff"]
+        
+        x = passive_branches.at[branch,"x_pu_eff"]
+        b = 1/x
         
         if passive_branches.at[branch,"s_nom_extendable"]:
-            xU = (passive_branches.at[branch,"s_nom"] + 6800) / passive_branches.at[branch, "r_pu_eff"]
+            xU = passive_branches.at[branch,"s_nom_max"] * b
         else:
-            xU = passive_branches.at[branch,"s_nom"]
-        
-        bt = branch[0]
-        bn = branch[1]
+            xU = passive_branches.at[branch,"s_nom"] * b
 
         for sn in snapshots:
-            for i in list(range(num_intervals)): 
+            for i in range(num_intervals): 
                 lower = xU * i / num_intervals
                 max_val = lower + ( xU / num_intervals )
-                slope = 2 * conductance * np.sin(lower)
+                slope = 2 * b * np.sin(lower)
 
                 lhs = LExpression([(1,network.model.delta_angle_positive[bt,bn,sn,i])])
                 intervals_lower[bt,bn,sn,i] = LConstraint(lhs, ">=", LExpression())
 
                 lhs = LExpression([(1,network.model.delta_angle_negative[bt,bn,sn,i])],(-max_val))
-                intervals_upper[bt,bn,sn,i] = LConstraint(lhs, "<=", LExpression()) 
-            
-            losses = sum(slope*(network.model.delta_angle_positive[bt,bn,sn,i]+network.model.delta_angle_negative[bt,bn,sn,i]) for i in list(range(num_intervals)))
-            
-            network.model.power_balance[bus0,sn]._body -= 0.5*losses
-            network.model.power_balance[bus1,sn]._body -= 0.5*losses    
+                intervals_upper[bt,bn,sn,i] = LConstraint(lhs, "<=", LExpression())
+
+                loss_term = 0.5 * slope * ( network.model.delta_angle_positive[bt,bn,sn,i] + \
+                                            network.model.delta_angle_negative[bt,bn,sn,i] )
+                network.model.power_balance[bus0,sn]._body -= loss_term
+                network.model.power_balance[bus1,sn]._body -= loss_term
             
             network.model.difference_constraint.add(
-                (network.model.voltage_angles[bus0,sn] - network.model.voltage_angles[bus1,sn]) == \
-                (sum((network.model.delta_angle_positive[bt,bn,sn,i] - network.model.delta_angle_negative[bt,bn,sn,i]) \
-                for i in range(num_intervals))))
+                ( network.model.voltage_angles[bus0,sn] - \
+                  network.model.voltage_angles[bus1,sn] ) == \
+                ( sum( ( network.model.delta_angle_positive[bt,bn,sn,i] - \
+                         network.model.delta_angle_negative[bt,bn,sn,i] ) \
+                       for i in range(num_intervals))))
     
     l_constraint(network.model, "intervals_lower", intervals_lower,
                  list(passive_branches.index), snapshots, list(range(num_intervals)))
+
     l_constraint(network.model, "intervals_upper", intervals_upper,
                  list(passive_branches.index), snapshots, list(range(num_intervals)))   
 
 
-def post_quadratic(network, snapshots,duals):
+def post_quadratic(network, snapshots, duals):
     
     passive_branches = network.passive_branches()
 
@@ -112,19 +119,22 @@ def post_quadratic(network, snapshots,duals):
         bus0 = passive_branches.at[branch, "bus0"]
         bus1 = passive_branches.at[branch, "bus1"]
         sub = passive_branches.at[branch,"sub_network"]
-        conductance = 1/passive_branches.at[branch, "r_pu_eff"]
         bt = branch[0]
         bn = branch[1]
         
+        x = passive_branches.at[branch,"x_pu_eff"]
+        b = 1/x
+        
         for sn in snapshots: 
-            loss.loc[sn,bn] = (conductance*network.model.delta_angle_sq[bt,bn,sn])
+            loss.loc[sn,bn] = (b*network.model.delta_angle_sq[bt,bn,sn])
     
     network.lines_t["loss"] =  loss
 
-
-def quadratic(network,snapshots):
+# https://www.iit.comillas.edu/aramos/papers/losses.pdf
+def quadratic(network, snapshots):
     
     num_intervals = 10
+
     passive_branches = network.passive_branches()
     
     network.model.delta_angle = Var(list(passive_branches.index), snapshots)
@@ -139,19 +149,20 @@ def quadratic(network,snapshots):
     for branch in passive_branches.index:
         bus0 = passive_branches.at[branch,"bus0"]
         bus1 = passive_branches.at[branch,"bus1"]
+        sub = passive_branches.at[branch,"sub_network"]
         bt = branch[0]
         bn = branch[1]
-        sub = passive_branches.at[branch,"sub_network"]
-        conductance = 1/passive_branches.at[branch,"r_pu_eff"]
+
+        x = passive_branches.at[branch,"x_pu_eff"]
+        b = 1/x
         r = passive_branches.at[branch,"r_pu_eff"]
+        g = 1/r
         
         if passive_branches.at[branch,"s_nom_extendable"]:
-            xU = (passive_branches.at[branch,"s_nom"] + 6800) / passive_branches.at[branch,"r_pu_eff"]
+            xU = passive_branches.at[branch,"s_nom_max"] * b
         else:
-            xU = passive_branches.at[branch,"s_nom"]
+            xU = passive_branches.at[branch,"s_nom"] * b
 
-        xL = -xU
-        
         for sn in snapshots:
             lhs = LExpression([
                     (1,network.model.voltage_angles[bus0,sn]),
@@ -161,21 +172,21 @@ def quadratic(network,snapshots):
             differences[bt,bn,sn] = LConstraint(lhs,"==",LExpression())
             
             # bounds 
-            lhs = LExpression([(1,network.model.delta_angle[bt,bn,sn])],xL)
+            lhs = LExpression([(1,network.model.delta_angle[bt,bn,sn])],-xU)
             envelope[bt,bn,sn,"xup"] = LConstraint(lhs, "<=", LExpression())
 
             lhs = LExpression([(1,network.model.delta_angle[bt,bn,sn])],xU)
-            envelope[bt,bn,sn,"xlow"] = LConstraint(lhs, ">=", LExpression())                                                       
+            envelope[bt,bn,sn,"xlow"] = LConstraint(lhs, "<=", LExpression())                                                       
 
             # approximation from above
             lhs = LExpression([(1,network.model.delta_angle_sq[bt,bn,sn])])
             rhs = LExpression([(xU,network.model.delta_angle[bt,bn,sn]),
-                               (xL,network.model.delta_angle[bt,bn,sn])],
-                              (-xU*xL))
+                               (-xU,network.model.delta_angle[bt,bn,sn])],
+                              (xU**2))
             envelope[bt,bn,sn,"wov1"] = LConstraint(lhs, "<=", rhs)
 
             # appoximation from below in intervals
-            for i in list(range(num_intervals+1)):
+            for i in range(num_intervals+1):
                 lower = xU * i / num_intervals
 
                 lhs = LExpression([(1,network.model.delta_angle_sq[bt,bn,sn])])
@@ -184,18 +195,20 @@ def quadratic(network,snapshots):
 
             # add p_sq to nodal power balance
             # use of ._body because of pyomo bug
-            network.model.power_balance[bus0,sn]._body -= 0.5 * conductance * network.model.delta_angle_sq[bt,bn,sn]
-            network.model.power_balance[bus1,sn]._body -= 0.5 * conductance * network.model.delta_angle_sq[bt,bn,sn]
+            network.model.power_balance[bus0,sn]._body -= 0.5 * g * network.model.delta_angle_sq[bt,bn,sn]
+            network.model.power_balance[bus1,sn]._body -= 0.5 * g * network.model.delta_angle_sq[bt,bn,sn]
     
     l_constraint(network.model, "mccormick_envelope_delta_angle", envelope,
                  list(passive_branches.index),snapshots,envelope_index)
+
     l_constraint(network.model, "differences", differences,
                  list(passive_branches.index),snapshots)
+
     l_constraint(network.model, "envelope_intervals", intervals,
                  list(range(num_intervals+1)), list(passive_branches.index), snapshots)    
 
 
-def post_lldc(network,snapshots,duals):
+def post_lldc(network, snapshots, duals):
 
     passive_branches = network.passive_branches()
     
@@ -203,20 +216,23 @@ def post_lldc(network,snapshots,duals):
     
     for branch in passive_branches.index:
         sub = passive_branches.at[branch,"sub_network"]
-        r = passive_branches.at[branch, "r_pu_eff"]
         bt = branch[0]
         bn = branch[1]
+        
+        r = passive_branches.at[branch, "r_pu_eff"]
+        
         for sn in snapshots: 
             loss.loc[sn,bn] = r * network.model.passive_branch_p_sq_out[bt,bn,sn].value + \
                               r * network.model.passive_branch_p_sq_in[bt,bn,sn].value
     
-    network.lines_t["loss"] =  loss
+    network.lines_t["loss"] = loss
         
 
 #https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6345342
-def lldc(network,snapshots):
+def lldc(network, snapshots):
     
     num_intervals = 10
+
     passive_branches = network.passive_branches()
     
     network.model.passive_branch_p_out = Var(list(passive_branches.index), snapshots, bounds=(0,float('inf')))
@@ -235,21 +251,23 @@ def lldc(network,snapshots):
         bus0 = passive_branches.at[branch,"bus0"]
         bus1 = passive_branches.at[branch,"bus1"]
         sub = passive_branches.at[branch,"sub_network"]
-
-        if passive_branches.at[branch,"s_nom_extendable"]:
-            xU = passive_branches.at[branch,"s_nom"] +6800
-        else:
-            xU = passive_branches.at[branch,"s_nom"]
-
-        r = passive_branches.at[branch,"r_pu_eff"]
         bt = branch[0]
         bn = branch[1]
+
+        r = passive_branches.at[branch,"r_pu_eff"]
+
+        if passive_branches.at[branch,"s_nom_extendable"]:
+            xU = passive_branches.at[branch,"s_nom_max"]
+        else:
+            xU = passive_branches.at[branch,"s_nom"]
+        
         xL = 0
+
         for sn in snapshots:
             lhs = LExpression([(1,network.model.passive_branch_p_out[bt,bn,sn]),
                                (-1,network.model.passive_branch_p_in[bt,bn,sn]),
                                (-1,network.model.passive_branch_p[bt,bn,sn])])
-            losses[bt,bn,sn] = LConstraint(lhs,"==",LExpression())
+            losses[bt,bn,sn] = LConstraint(lhs, "==", LExpression())
             
             # bounds
             lhs = LExpression([(1,network.model.passive_branch_p_in[bt,bn,sn]),
@@ -278,7 +296,7 @@ def lldc(network,snapshots):
             envelope["out",bt,bn,sn,"wov1"] = LConstraint(lhs, "<=", rhs)
             
             # appoximation from below in 10 intervals
-            for i in list(range(num_intervals+1)):
+            for i in range(num_intervals+1):
                 lower = xU * i / num_intervals
 
                 lhs = LExpression([(1,network.model.passive_branch_p_sq_in[bt,bn,sn])])
@@ -296,7 +314,9 @@ def lldc(network,snapshots):
    
     l_constraint(network.model, "mccormick_envelope_p", envelope,approx_index,
                  list(passive_branches.index), snapshots, envelope_index)
+
     l_constraint(network.model, "losses", losses,
                  list(passive_branches.index), snapshots)
+
     l_constraint(network.model, "envelope_intervals", intervals, approx_index,
                  list(range(num_intervals+1)), list(passive_branches.index), snapshots)

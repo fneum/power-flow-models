@@ -7,6 +7,9 @@ scenario:
   loss: [cosine, lldc, quadratic]
   slack: [distributed, regular]
 
+additional_s_nom: 6800
+links_p_nom_max: 10000
+
 solving:
   options:
     formulation: angles

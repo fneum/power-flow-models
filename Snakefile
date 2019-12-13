@@ -1,5 +1,3 @@
-from os.path import normpath
-
 configfile: "config.yaml"
 
 subworkflow pypsaeur:

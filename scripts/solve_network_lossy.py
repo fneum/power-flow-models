@@ -40,9 +40,15 @@ if __name__ == "__main__":
     logging.basicConfig(filename=snakemake.log.python,
                         level=snakemake.config['logging_level'])
 
+    config = snakemake.config
+
     with memory_logger(filename=getattr(snakemake.log, 'memory', None), interval=30.) as mem:
         
         n = pypsa.Network(snakemake.input[0])
+
+        n.lines.s_nom_max = n.lines.s_nom + config["additional_s_nom"]
+        n.links.p_nom_max = config["links_p_nom_max"]
+
         n = prepare_network(n)
         
         try:
