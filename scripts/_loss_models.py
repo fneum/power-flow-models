@@ -143,6 +143,70 @@ def quadratic(network, snapshots):
 
     l_constraint(network.model, "envelope_intervals", intervals,
                  list(range(num_intervals+1)), list(passive_branches.index), snapshots)    
+        
+
+#https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6345342
+def lldc(network, snapshots):
+    
+    num_intervals = 10
+
+    passive_branches = network.passive_branches()
+    network.model.loss = Var(list(passive_branches.index), snapshots, bounds=(0,float('inf')))
+    network.model.passive_branch_p_sq = Var(list(passive_branches.index), snapshots, bounds=(0,float('inf')))
+    
+    losses = {}
+    upper_bound = {}
+    intervals = {}
+    
+    for branch in passive_branches.index:
+        bus0 = passive_branches.at[branch,"bus0"]
+        bus1 = passive_branches.at[branch,"bus1"]
+        sub = passive_branches.at[branch,"sub_network"]
+        bt = branch[0]
+        bn = branch[1]
+
+        r = passive_branches.at[branch,"r_pu_eff"]
+
+        if passive_branches.at[branch,"s_nom_extendable"]:
+            xU = passive_branches.at[branch,"s_nom_max"] * passive_branches_at * passive_branches.at[branch,"s_max"]
+        else:
+            xU = passive_branches.at[branch,"s_nom"]
+        
+        xL = 0
+
+        for sn in snapshots:
+            lhs = LExpression([(1,network.model.loss[bt,bn,sn])])
+            rhs = LExpression([(r,network.model.passive_branch_p_sq[bt,bn,sn])])
+            losses[bt,bn,sn] = LConstraint(lhs, "=", rhs)
+
+            # approximation from above     
+            lhs = LExpression([(1,network.model.passive_branch_p_sq[bt,bn,sn])])
+            rhs = LExpression([(xU,network.model.passive_branch_p[bt,bn,sn]),
+                               (xL,network.model.passive_branch_p[bt,bn,sn])],
+                              (-xU*xL))
+            upper_bound[bt,bn,sn] = LConstraint(lhs, "<=", rhs)
+
+            
+            # appoximation from below in 10 intervals
+            for i in range(num_intervals+1):
+                lower = xU * i / num_intervals
+
+                lhs = LExpression([(1,network.model.passive_branch_p_sq[bt,bn,sn])])
+                rhs = LExpression([(2*lower,network.model.passive_branch_p[bt,bn,sn])],(-lower**2))
+                intervals[i,bt,bn,sn] = LConstraint(lhs, ">=", rhs)
+                          
+            # add p_sq to nodal power balance
+            # use of ._body because of pyomo bug
+            network.model.power_balance[bus0,sn]._body -= network.model.loss[bt,bn,sn]
+            network.model.power_balance[bus1,sn]._body -= network.model.loss[bt,bn,sn]
+   
+    l_constraint(network.model, "upper_bound", upper_bound, list(passive_branches.index), snapshots)
+
+    l_constraint(network.model, "losses", losses,
+                 list(passive_branches.index), snapshots)
+
+    l_constraint(network.model, "tangents", intervals, list(range(num_intervals+1)), list(passive_branches.index), snapshots)
+
 
 
 def post_processing(network, snapshots, duals):
@@ -163,97 +227,3 @@ def post_processing(network, snapshots, duals):
             loss.loc[sn,bt] = 0.5 * network.model.loss[bt,bn,sn]
             loss.loc[sn,bn] = 0.5 * network.model.loss[bt,bn,sn]
     network.lines_t["loss"] = loss
-        
-
-#https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6345342
-def lldc(network, snapshots):
-    
-    num_intervals = 10
-
-    passive_branches = network.passive_branches()
-    
-    network.model.passive_branch_p_out = Var(list(passive_branches.index), snapshots, bounds=(0,float('inf')))
-    network.model.passive_branch_p_in = Var(list(passive_branches.index), snapshots, bounds=(0,float('inf')))
-    network.model.passive_branch_p_sq_in = Var(list(passive_branches.index), snapshots, bounds=(0,float('inf')))
-    network.model.passive_branch_p_sq_out = Var(list(passive_branches.index), snapshots, bounds=(0,float('inf')))
-    
-    approx_index = ["in","out"]
-    envelope_index = ["xup","wov1"]
-    
-    losses = {}
-    envelope = {}
-    intervals = {}
-    
-    for branch in passive_branches.index:
-        bus0 = passive_branches.at[branch,"bus0"]
-        bus1 = passive_branches.at[branch,"bus1"]
-        sub = passive_branches.at[branch,"sub_network"]
-        bt = branch[0]
-        bn = branch[1]
-
-        r = passive_branches.at[branch,"r_pu_eff"]
-
-        if passive_branches.at[branch,"s_nom_extendable"]:
-            xU = passive_branches.at[branch,"s_nom_max"] * passive_branches_at * 
-        else:
-            xU = passive_branches.at[branch,"s_nom"]
-        
-        xL = 0
-
-        for sn in snapshots:
-            lhs = LExpression([(1,network.model.passive_branch_p_out[bt,bn,sn]),
-                               (-1,network.model.passive_branch_p_in[bt,bn,sn]),
-                               (-1,network.model.passive_branch_p[bt,bn,sn])])
-            losses[bt,bn,sn] = LConstraint(lhs, "==", LExpression())
-            
-            # bounds
-            lhs = LExpression([(1,network.model.passive_branch_p_in[bt,bn,sn]),
-                               (r,network.model.passive_branch_p_sq_in[bt,bn,sn]),
-                               (r,network.model.passive_branch_p_sq_out[bt,bn,sn])],
-                              (-xU))
-            envelope["in",bt,bn,sn,"xup"] = LConstraint(lhs, "<=", LExpression())
-
-            lhs = LExpression([(1,network.model.passive_branch_p_out[bt,bn,sn]),
-                               (r,network.model.passive_branch_p_sq_in[bt,bn,sn]),
-                               (r,network.model.passive_branch_p_sq_out[bt,bn,sn])],
-                              (-xU))
-            envelope["out",bt,bn,sn,"xup"] = LConstraint(lhs, "<=", LExpression())
-            
-            # approximation from above     
-            lhs = LExpression([(1,network.model.passive_branch_p_sq_in[bt,bn,sn])])
-            rhs = LExpression([(xU,network.model.passive_branch_p_in[bt,bn,sn]),
-                               (xL,network.model.passive_branch_p_in[bt,bn,sn])],
-                              (-xU*xL))
-            envelope["in",bt,bn,sn,"wov1"] = LConstraint(lhs, "<=", rhs)
-
-            lhs = LExpression([(1,network.model.passive_branch_p_sq_out[bt,bn,sn])])
-            rhs = LExpression([(xU,network.model.passive_branch_p_out[bt,bn,sn]),
-                               (xL,network.model.passive_branch_p_out[bt,bn,sn])],
-                              (-xU*xL))
-            envelope["out",bt,bn,sn,"wov1"] = LConstraint(lhs, "<=", rhs)
-            
-            # appoximation from below in 10 intervals
-            for i in range(num_intervals+1):
-                lower = xU * i / num_intervals
-
-                lhs = LExpression([(1,network.model.passive_branch_p_sq_in[bt,bn,sn])])
-                rhs = LExpression([(2*lower,network.model.passive_branch_p_in[bt,bn,sn])],(-lower**2))
-                intervals["in",i,bt,bn,sn] = LConstraint(lhs, ">=", rhs)
-                
-                lhs = LExpression([(1,network.model.passive_branch_p_sq_out[bt,bn,sn])])
-                rhs = LExpression([(2*lower,network.model.passive_branch_p_out[bt,bn,sn])],(-lower**2))
-                intervals["out",i,bt,bn,sn] = LConstraint(lhs, ">=", rhs)
-            
-            # add p_sq to nodal power balance
-            # use of ._body because of pyomo bug
-            network.model.power_balance[bus0,sn]._body -= r * network.model.passive_branch_p_sq_in[bt,bn,sn]
-            network.model.power_balance[bus1,sn]._body -= r * network.model.passive_branch_p_sq_out[bt,bn,sn]
-   
-    l_constraint(network.model, "mccormick_envelope_p", envelope,approx_index,
-                 list(passive_branches.index), snapshots, envelope_index)
-
-    l_constraint(network.model, "losses", losses,
-                 list(passive_branches.index), snapshots)
-
-    l_constraint(network.model, "envelope_intervals", intervals, approx_index,
-                 list(range(num_intervals+1)), list(passive_branches.index), snapshots)
