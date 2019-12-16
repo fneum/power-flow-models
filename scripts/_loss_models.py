@@ -15,11 +15,9 @@ def cosine(network, snapshots):
 
     passive_branches = network.passive_branches()
     
-    network.model.delta_angle_positive = Var(list(passive_branches.index),
-                                             snapshots, list(range(num_intervals)))
-    network.model.delta_angle_negative = Var(list(passive_branches.index),
-                                             snapshots, list(range(num_intervals)))
-    network.model.difference_constraint = penv.ConstraintList()
+    network.model.delta_angle = Var(list(passive_branches.index), snapshots)
+                
+    network.model.loss = Var(list(passive_branches.index), snapshots)
     
     intervals_upper = {}
     intervals_lower = {}
@@ -45,29 +43,33 @@ def cosine(network, snapshots):
                 max_val = lower + ( xU / num_intervals )
                 slope = 2 * b * np.sin(lower)
 
-                lhs = LExpression([(1,network.model.delta_angle_positive[bt,bn,sn,i])])
+                lhs = LExpression([(1,network.model.delta_angle[bt,bn,sn,i])])
                 intervals_lower[bt,bn,sn,i] = LConstraint(lhs, ">=", LExpression())
 
-                lhs = LExpression([(1,network.model.delta_angle_negative[bt,bn,sn,i])],(-max_val))
+                lhs = LExpression([(1,network.model.delta_angle[bt,bn,sn,i])],(-max_val))
                 intervals_upper[bt,bn,sn,i] = LConstraint(lhs, "<=", LExpression())
 
-                loss_term = 0.5 * slope * ( network.model.delta_angle_positive[bt,bn,sn,i] + \
-                                            network.model.delta_angle_negative[bt,bn,sn,i] )
-                network.model.power_balance[bus0,sn]._body -= loss_term
-                network.model.power_balance[bus1,sn]._body -= loss_term
+                network.model.power_balance[bus0,sn]._body -= 0.5 * network.model.loss[bt,bn,sn]
+                network.model.power_balance[bus1,sn]._body -= 0.5 * network.model.loss[bt,bn,sn]
             
-            network.model.difference_constraint.add(
-                ( network.model.voltage_angles[bus0,sn] - \
-                  network.model.voltage_angles[bus1,sn] ) == \
-                ( sum( ( network.model.delta_angle_positive[bt,bn,sn,i] - \
-                         network.model.delta_angle_negative[bt,bn,sn,i] ) \
-                       for i in range(num_intervals))))
+            lhs = LExpression([(1, network.model.delta_angle[bt,bn,sn])])
+            rhs = LExpression([(1, network.model.voltage_angles[bus0,sn]),(-1, network.model.voltage_angles[bus1,sn])])
+            difference[bt,bn,sn] = LConstraint(lhs, "=", rhs)
+
+            lhs = LExpression([(1,network.model.loss[bt,bn,sn])])
+            rhs = LExpression([(slope,network.model.delta_angle[bt,bn,sn])])
+            losses[bt,bn,sn] = LConstraint(lhs, "=", rhs)
+
     
     l_constraint(network.model, "intervals_lower", intervals_lower,
                  list(passive_branches.index), snapshots, list(range(num_intervals)))
 
     l_constraint(network.model, "intervals_upper", intervals_upper,
                  list(passive_branches.index), snapshots, list(range(num_intervals)))   
+
+    l_constraint(network.model, "delta_angle", difference, list(passive_branches.index), snapshots)
+
+    l_constraint(network.model, "losses", losses, list(passive_branches.index), snapshots)
 
 
 # https://www.iit.comillas.edu/aramos/papers/losses.pdf
