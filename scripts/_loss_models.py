@@ -179,11 +179,8 @@ def quadratic(network, snapshots):
             envelope[bt,bn,sn,"xlow"] = LConstraint(lhs, "<=", LExpression())                                                       
 
             # approximation from above
-            lhs = LExpression([(1,network.model.delta_angle_sq[bt,bn,sn])])
-            rhs = LExpression([(xU,network.model.delta_angle[bt,bn,sn]),
-                               (-xU,network.model.delta_angle[bt,bn,sn])],
-                              (xU**2))
-            envelope[bt,bn,sn,"wov1"] = LConstraint(lhs, "<=", rhs)
+            lhs = LExpression([(1,network.model.delta_angle_sq[bt,bn,sn])], (-xU**2))
+            envelope[bt,bn,sn,"wov1"] = LConstraint(lhs, "<=", LExpression())
 
             # appoximation from below in intervals
             for i in range(num_intervals+1):
