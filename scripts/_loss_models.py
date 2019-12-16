@@ -74,9 +74,9 @@ def cosine(network, snapshots):
         b = 1/x
         
         if passive_branches.at[branch,"s_nom_extendable"]:
-            xU = passive_branches.at[branch,"s_nom_max"] * x
+            xU = passive_branches.at[branch,"s_nom_max"] * x * passive_branches.at[branch, "s_max_pu"]
         else:
-            xU = passive_branches.at[branch,"s_nom"] * x
+            xU = passive_branches.at[branch,"s_nom"] * x 
 
         for sn in snapshots:
             for i in range(num_intervals): 
@@ -159,7 +159,7 @@ def quadratic(network, snapshots):
         g = 1/r
         
         if passive_branches.at[branch,"s_nom_extendable"]:
-            xU = passive_branches.at[branch,"s_nom_max"] * x
+            xU = passive_branches.at[branch,"s_nom_max"] * x * passive_branches_at[branch,"s_max_pu"]
         else:
             xU = passive_branches.at[branch,"s_nom"] * x
 
@@ -254,7 +254,7 @@ def lldc(network, snapshots):
         r = passive_branches.at[branch,"r_pu_eff"]
 
         if passive_branches.at[branch,"s_nom_extendable"]:
-            xU = passive_branches.at[branch,"s_nom_max"]
+            xU = passive_branches.at[branch,"s_nom_max"] * passive_branches_at * 
         else:
             xU = passive_branches.at[branch,"s_nom"]
         
