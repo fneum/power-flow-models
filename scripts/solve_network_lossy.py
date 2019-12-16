@@ -53,9 +53,9 @@ if __name__ == "__main__":
         
         try:
             n = solve_network(n, extra_functionality=globals()[f"{loss}"],
-                                 extra_postprocessing=globals()[f"post_{loss}"])
+                                 extra_postprocessing=post_processing)
         except KeyError:
-            raise RuntimeError(f"The loss function {loss} or post_{loss} has not been defined.")
+            raise RuntimeError(f"The loss function {loss} has not been defined.")
             
         n.export_to_netcdf(snakemake.output.nc)
         n.export_to_csv_folder(snakemake.output.csv)

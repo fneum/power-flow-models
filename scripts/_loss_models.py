@@ -7,45 +7,6 @@ from pypsa.opt import LConstraint, l_constraint, LExpression
 from pyomo.environ import Var
 
 
-def post_cosine(network, snapshots, duals):
-
-    num_intervals = 10
-    
-    passive_branches = network.passive_branches()
-
-    loss = pd.DataFrame(0, index=snapshots, columns=network.lines.index)
-
-    for branch in passive_branches.index:
-        sub = passive_branches.at[branch,"sub_network"]
-        bt = branch[0]
-        bn = branch[1]
-
-        x = passive_branches.at[branch,"x_pu_eff"]
-        b = 1/x
-
-        if passive_branches.at[branch,"s_nom_extendable"]:
-            xU = passive_branches.at[branch,"s_nom_max"] * x
-        else:
-            xU = passive_branches.at[branch,"s_nom"] * x
-        
-        for sn in snapshots:
-            for i in range(num_intervals): 
-                lower = xU * i / num_intervals
-                max_val = lower + ( xU / num_intervals )
-                slope = 2 * b * np.sin(lower)
-                
-                loss.loc[sn,bt] = 0.5 * slope * (
-                                    network.model.delta_angle_positive[bt,bn,sn,i] + 
-                                    network.model.delta_angle_negative[bt,bn,sn,i]
-                                  )
-                
-                loss.loc[sn,bn] = 0.5 * slope * (
-                                    network.model.delta_angle_positive[bt,bn,sn,i] +
-                                    network.model.delta_angle_negative[bt,bn,sn,i]
-                                  )    
-    
-    network.lines_t["loss"] = loss
-
 
 # https://www.iit.comillas.edu/aramos/papers/losses.pdf
 def cosine(network, snapshots):
@@ -108,27 +69,6 @@ def cosine(network, snapshots):
     l_constraint(network.model, "intervals_upper", intervals_upper,
                  list(passive_branches.index), snapshots, list(range(num_intervals)))   
 
-
-def post_quadratic(network, snapshots, duals):
-    
-    passive_branches = network.passive_branches()
-
-    loss = pd.DataFrame(0, index=snapshot, columns=network.lines.index)
-
-    for branch in passive_branches.index:
-        bus0 = passive_branches.at[branch, "bus0"]
-        bus1 = passive_branches.at[branch, "bus1"]
-        sub = passive_branches.at[branch,"sub_network"]
-        bt = branch[0]
-        bn = branch[1]
-        
-        x = passive_branches.at[branch,"x_pu_eff"]
-        b = 1/x
-        
-        for sn in snapshots: 
-            loss.loc[sn,bn] = (b*network.model.delta_angle_sq[bt,bn,sn])
-    
-    network.lines_t["loss"] =  loss
 
 # https://www.iit.comillas.edu/aramos/papers/losses.pdf
 def quadratic(network, snapshots):
@@ -205,7 +145,7 @@ def quadratic(network, snapshots):
                  list(range(num_intervals+1)), list(passive_branches.index), snapshots)    
 
 
-def post_lldc(network, snapshots, duals):
+def post_processing(network, snapshots, duals):
 
     passive_branches = network.passive_branches()
     
@@ -219,9 +159,9 @@ def post_lldc(network, snapshots, duals):
         r = passive_branches.at[branch, "r_pu_eff"]
         
         for sn in snapshots: 
-            loss.loc[sn,bn] = r * network.model.passive_branch_p_sq_out[bt,bn,sn].value + \
-                              r * network.model.passive_branch_p_sq_in[bt,bn,sn].value
-    
+
+            loss.loc[sn,bt] = 0.5 * network.model.loss[bt,bn,sn]
+            loss.loc[sn,bn] = 0.5 * network.model.loss[bt,bn,sn]
     network.lines_t["loss"] = loss
         
 
