@@ -65,10 +65,10 @@ def cosine(network, snapshots):
             network.model.flow_upper[bt,bn,sn]._body -= 0.5 * network.model.loss[bt,bn,sn]
 
             lhs = LExpression([(1,network.model.delta_angle[bt,bn,sn])],-xU)
-            delta_lower[bt,bn,sn] = LConstraint(lhs, "<=", LExpression())
+            delta_upper[bt,bn,sn] = LConstraint(lhs, "<=", LExpression())
 
             lhs = LExpression([(1,network.model.delta_angle[bt,bn,sn])],xU)
-            delta_upper[bt,bn,sn] = LConstraint(lhs, "<=", LExpression())  
+            delta_lower[bt,bn,sn] = LConstraint(lhs, ">=", LExpression())  
             
             lhs = LExpression([(1, network.model.loss[bt,bn,sn])],(-max_loss))
             loss_upper[bt,bn,sn] = LConstraint(lhs, "<=", LExpression())
@@ -142,10 +142,10 @@ def quadratic(network, snapshots):
             
             # bounds 
             lhs = LExpression([(1,network.model.delta_angle[bt,bn,sn])],-xU)
-            delta_lower[bt,bn,sn] = LConstraint(lhs, "<=", LExpression())
+            delta_upper[bt,bn,sn] = LConstraint(lhs, "<=", LExpression())
 
             lhs = LExpression([(1,network.model.delta_angle[bt,bn,sn])],xU)
-            delta_upper[bt,bn,sn] = LConstraint(lhs, "<=", LExpression())  
+            delta_lower[bt,bn,sn] = LConstraint(lhs, ">=", LExpression())  
 
             lhs = LExpression([(1,network.model.loss[bt,bn,sn])], -g*(xU**2))
             loss_upper[bt,bn,sn] = LConstraint(lhs, "<=", LExpression())
