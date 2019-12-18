@@ -4,7 +4,7 @@ scenario:
   ll: [copt]
   clusters: [37, 100]
   opts: [2H]
-  loss: [cosine, lldc, quadratic]
+  loss: [cosine, lldc]
   slack: [distributed, regular]
 
 additional_s_nom: 6800
