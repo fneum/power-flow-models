@@ -36,19 +36,20 @@ def cosine(network, snapshots):
         r_pu_eff = passive_branches.at[branch,"r_pu_eff"]
         r = passive_branches.at[branch,"r"]
         g = r / (x**2)
+        g_pu_eff = g * (passive_branches.at[branch, "v_nom"]**2)
         
         if passive_branches.at[branch,"s_nom_extendable"]:
             d_theta_max = passive_branches.at[branch,"s_nom_max"] * x_pu_eff * passive_branches.at[branch, "s_max_pu"]
         else:
             d_theta_max = passive_branches.at[branch,"s_nom"] * x_pu_eff  * passive_branches.at[branch, "s_max_pu"]
         
-        max_loss = 2 * g * (1 - np.cos(d_theta_max))
+        max_loss = 2 * g_pu_eff * (1 - np.cos(d_theta_max))
         
         for sn in snapshots:
             for i in range(num_intervals+1):
                 d_theta_i = d_theta_max * (i / num_intervals)
-                losses_i = 2 * g * (1 - np.cos(d_theta_i)) 
-                slope_i =  2 * g * np.sin(d_theta_i)
+                losses_i = 2 * g_pu_eff * (1 - np.cos(d_theta_i)) 
+                slope_i =  2 * g_pu_eff * np.sin(d_theta_i)
                 offset_i = losses_i - (slope_i * d_theta_i)
 
                 lhs = LExpression([(1, network.model.loss[bt,bn,sn])])
