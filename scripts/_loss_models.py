@@ -48,7 +48,6 @@ def cosine(network, snapshots):
         else:
             d_theta_max = passive_branches.at[branch,"s_nom"] * x_pu_eff  * passive_branches.at[branch, "s_max_pu"]
         
-
         max_loss = 2 * g_pu_eff * (1 - np.cos(d_theta_max))
         
         for sn in snapshots:
