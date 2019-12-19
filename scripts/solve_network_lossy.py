@@ -47,10 +47,7 @@ if __name__ == "__main__":
         
         n = pypsa.Network(snakemake.input[0])
 
-        n.set_snapshots(n.snapshots[:int(config["nhours"])])
-
-        # TODO test only
-        #n.lines.s_nom_extendable = False
+        #n.set_snapshots(n.snapshots[:int(config["nhours"])])
 
         n.lines.s_nom_max = n.lines.s_nom + config["additional_s_nom"]
         n.links.p_nom_max = config["links_p_nom_max"]
