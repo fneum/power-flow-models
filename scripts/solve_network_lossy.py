@@ -14,6 +14,7 @@ from pypsa.descriptors import free_output_series_dataframes
 from six import iteritems, itervalues, string_types
 from pyomo.environ import Constraint, Objective, Var, ComponentUID
 from vresutils.benchmark import memory_logger
+from pyomo.util.infeasible import log_infeasible_constraints 
 
 import logging
 logger = logging.getLogger(__name__)
@@ -46,10 +47,17 @@ if __name__ == "__main__":
         
         n = pypsa.Network(snakemake.input[0])
 
+        n.set_snapshots(n.snapshots[:int(config["nhours"])])
+
+        # TODO test only
+        #n.lines.s_nom_extendable = False
+
         n.lines.s_nom_max = n.lines.s_nom + config["additional_s_nom"]
         n.links.p_nom_max = config["links_p_nom_max"]
 
-        n = prepare_network(n, solve_opts = snakemake.config['solving'])
+        n.lines = n.lines.loc[n.lines.s_nom!=0]
+
+        n = prepare_network(n, solve_opts=snakemake.config['solving']['options'])
         
         try:
             n = solve_network(n, config=snakemake.config['solving'],
