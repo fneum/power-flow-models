@@ -51,8 +51,10 @@ if __name__ == "__main__":
         n = prepare_network(n)
         
         try:
-            n = solve_network(n, extra_functionality=globals()[f"{loss}"],
-                                 extra_postprocessing=post_processing)
+            n = solve_network(n, opts=snakemake.config['solving'],
+                              solver_logs=snakemak.logs.solver,
+                              extra_functionality=globals()[f"{loss}"],
+                              extra_postprocessing=post_processing)
         except KeyError:
             raise RuntimeError(f"The loss function {loss} has not been defined.")
             
