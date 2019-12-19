@@ -1,4 +1,4 @@
-logging_level: INFO
+logging_level: DEBUG
 
 scenario:
   ll: [copt]
@@ -9,6 +9,7 @@ scenario:
 
 additional_s_nom: 6800
 links_p_nom_max: 10000
+nhours: 2
 
 solving:
   options:
@@ -31,6 +32,7 @@ solving:
     BarHomogeneous: 1
     ScaleFlag: 2
     GURO_PAR_BARDENSETHRESH: 200
+    ResultFile: model.ilp
   # solver:
   #   name: cplex
   #   threads: 4

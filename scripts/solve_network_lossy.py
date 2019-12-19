@@ -14,6 +14,7 @@ from pypsa.descriptors import free_output_series_dataframes
 from six import iteritems, itervalues, string_types
 from pyomo.environ import Constraint, Objective, Var, ComponentUID
 from vresutils.benchmark import memory_logger
+from pyomo.util.infeasible import log_infeasible_constraints 
 
 import logging
 logger = logging.getLogger(__name__)
@@ -40,19 +41,26 @@ if __name__ == "__main__":
                         level=snakemake.config['logging_level'])
 
     config = snakemake.config
+    loss = snakemake.wildcards.loss
 
     with memory_logger(filename=getattr(snakemake.log, 'memory', None), interval=30.) as mem:
         
         n = pypsa.Network(snakemake.input[0])
 
+        #n.set_snapshots(n.snapshots[:int(config["nhours"])])
+
         n.lines.s_nom_max = n.lines.s_nom + config["additional_s_nom"]
         n.links.p_nom_max = config["links_p_nom_max"]
 
-        n = prepare_network(n)
+        n.lines = n.lines.loc[n.lines.s_nom!=0]
+
+        n = prepare_network(n, solve_opts=snakemake.config['solving']['options'])
         
         try:
-            n = solve_network(n, extra_functionality=globals()[f"{loss}"],
-                                 extra_postprocessing=post_processing)
+            n = solve_network(n, config=snakemake.config['solving'],
+                              solver_log=snakemake.log.solver, opts = snakemake.wildcards.opts,
+                              extra_functionality=globals()[f"{loss}"],
+                              extra_postprocessing=post_processing)
         except KeyError:
             raise RuntimeError(f"The loss function {loss} has not been defined.")
             
