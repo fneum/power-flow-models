@@ -40,6 +40,7 @@ if __name__ == "__main__":
                         level=snakemake.config['logging_level'])
 
     config = snakemake.config
+    loss = snakemake.wildcards.loss
 
     with memory_logger(filename=getattr(snakemake.log, 'memory', None), interval=30.) as mem:
         
@@ -48,11 +49,11 @@ if __name__ == "__main__":
         n.lines.s_nom_max = n.lines.s_nom + config["additional_s_nom"]
         n.links.p_nom_max = config["links_p_nom_max"]
 
-        n = prepare_network(n)
+        n = prepare_network(n, solve_opts = snakemake.config['solving'])
         
         try:
-            n = solve_network(n, opts=snakemake.config['solving'],
-                              solver_logs=snakemak.logs.solver,
+            n = solve_network(n, config=snakemake.config['solving'],
+                              solver_log=snakemake.log.solver, opts = snakemake.wildcards.opts,
                               extra_functionality=globals()[f"{loss}"],
                               extra_postprocessing=post_processing)
         except KeyError:
