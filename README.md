@@ -1,0 +1,1 @@
+# Linear Loss Approximations for PyPSA-Eur
