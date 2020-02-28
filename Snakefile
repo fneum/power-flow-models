@@ -28,16 +28,14 @@ def memory(w):
 
 rule solve_lossy_network:
     input: pypsaeur("networks/elec_s_{clusters}_ec_lcopt_{opts}.nc")
-    output: 
-      nc="results/networks/elec_s_{clusters}_ec_lcopt_{opts}_L{loss}.nc",
-      csv=directory("results/csv/elec_s_{clusters}_ec_lcopt_{opts}_L{loss}")
+    output: "results/networks/elec_s_{clusters}_ec_lcopt_{opts}_L{loss}.nc"
     log:
         solver="logs/elec_s_{clusters}_lcopt_{opts}_L{loss}_solver.log",
         python="logs/elec_s_{clusters}_lcopt_{opts}_L{loss}_python.log",
         memory="logs/elec_s_{clusters}_lcopt_{opts}_L{loss}_memory.log"
     threads: 4
     resources: mem=memory
-    script: "scripts/solve_network_lossy.py"
+    script: "scripts/solve_lossy_network.py"
 
 rule solve_all_lossy_networks:
     input: 
@@ -47,22 +45,19 @@ rule solve_all_lossy_networks:
 
 # PF CHECK RULES
 
-rule pf_for_lossy_network: 
+rule lossy_network_pf: 
     input: "results/networks/elec_s_{clusters}_ec_lcopt_{opts}_L{loss}.nc"
-    output: nc="results/pf/elec_s_{clusters}_ec_lcopt_{opts}_L{loss}_S{slack}.nc",
-            csv=directory("results/csv/elec_s_{clusters}_ec_lcopt_{opts}_L{loss}_S{slack}")
-    script: "scripts/check_power_flow.py"
+    output: "results/pf/elec_s_{clusters}_ec_lcopt_{opts}_L{loss}_S{slack}.nc"
+    script: "scripts/power_flow.py"
 
-rule pf_for_lossless_network: 
+rule lossless_network_pf: 
     input: pypsaeur("results/networks/elec_s_{clusters}_ec_lcopt_{opts}.nc")
-    output: nc="results/pf/elec_s_{clusters}_ec_lcopt_{opts}_S{slack}.nc",
-            csv=directory("results/csv/elec_s_{clusters}_ec_lcopt_{opts}_S{slack}")
-    script: "scripts/check_power_flow.py"
+    output: "results/pf/elec_s_{clusters}_ec_lcopt_{opts}_S{slack}.nc"
+    script: "scripts/power_flow.py"
 
-rule pf_for_all:
+rule all_pf:
     input: 
         lossy=expand("results/pf/elec_s_{clusters}_ec_lcopt_{opts}_L{loss}_S{slack}.nc",
                      **config["scenario"]),
         lossless=expand("results/pf/elec_s_{clusters}_ec_lcopt_{opts}_S{slack}.nc",
                      **config["scenario"])
-                     

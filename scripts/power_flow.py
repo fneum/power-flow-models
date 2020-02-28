@@ -29,10 +29,9 @@ if __name__ == "__main__":
     init_bus = n.buses.index[0]
     pq_gen_selection = n.generators[
         n.generators.bus == init_bus
-    ]  # TODO select first bus
+    ]
     n.generators.loc[pq_gen_selection.index, "control"] = "PQ"
 
     n.pf(distribute_slack=slack)
 
-    n.export_to_netcdf(snakemake.output.nc)
-    n.export_to_csv_folder(snakemake.output.csv)
+    n.export_to_netcdf(snakemake.output[0])

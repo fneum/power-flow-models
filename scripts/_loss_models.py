@@ -9,7 +9,7 @@ from pyomo.environ import Var, value
 # https://www.iit.comillas.edu/aramos/papers/losses.pdf
 def cosine(network, snapshots):
 
-    num_intervals = 10
+    num_intervals = 3
 
     passive_branches = network.passive_branches()
 
@@ -28,6 +28,7 @@ def cosine(network, snapshots):
     lower_flow = {}
 
     for branch in passive_branches.index:
+        
         bus0 = passive_branches.at[branch, "bus0"]
         bus1 = passive_branches.at[branch, "bus1"]
         bt = branch[0]
@@ -58,7 +59,9 @@ def cosine(network, snapshots):
         max_loss = 2 * g_pu_eff * (1 - np.cos(d_theta_max))
 
         for sn in snapshots:
+
             for i in range(num_intervals + 1):
+
                 d_theta_i = d_theta_max * (i / num_intervals)
                 losses_i = 2 * g_pu_eff * (1 - np.cos(d_theta_i))
                 slope_i = 2 * g_pu_eff * np.sin(d_theta_i)
@@ -84,6 +87,7 @@ def cosine(network, snapshots):
             )
 
             if passive_branches.at[branch, "s_nom_extendable"]:
+
                 lhs = LExpression([(1, network.model.passive_branch_p[bt, bn, sn])])
                 rhs = LExpression(
                     [
@@ -101,7 +105,9 @@ def cosine(network, snapshots):
                     ]
                 )
                 upper_flow[bt, bn, sn] = LConstraint(lhs, ">=", rhs)
+
             else:
+
                 lhs = LExpression([(1, network.model.passive_branch_p[bt, bn, sn])])
                 rhs = LExpression([(-1, network.model.loss[bt, bn, sn])], (s))
                 lower_flow[bt, bn, sn] = LConstraint(lhs, "<=", rhs)
@@ -193,9 +199,9 @@ def cosine(network, snapshots):
 
 
 # https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6345342
-def lldc(network, snapshots):
+def square(network, snapshots):
 
-    num_intervals = 10
+    num_intervals = 3
 
     passive_branches = network.passive_branches()
 
@@ -210,6 +216,7 @@ def lldc(network, snapshots):
     lower_flow = {}
 
     for branch in passive_branches.index:
+
         bus0 = passive_branches.at[branch, "bus0"]
         bus1 = passive_branches.at[branch, "bus1"]
         bt = branch[0]
@@ -241,6 +248,7 @@ def lldc(network, snapshots):
             loss_lower[bt, bn, sn] = LConstraint(lhs, ">=", LExpression())
 
             if passive_branches.at[branch, "s_nom_extendable"]:
+
                 lhs = LExpression([(1, network.model.passive_branch_p[bt, bn, sn])])
                 rhs = LExpression(
                     [
@@ -258,6 +266,7 @@ def lldc(network, snapshots):
                     ]
                 )
                 upper_flow[bt, bn, sn] = LConstraint(lhs, ">=", rhs)
+
             else:
 
                 lhs = LExpression([(1, network.model.passive_branch_p[bt, bn, sn])])
@@ -269,6 +278,7 @@ def lldc(network, snapshots):
                 upper_flow[bt, bn, sn] = LConstraint(lhs, ">=", rhs)
 
             for i in range(num_intervals + 1):
+
                 p_i = p_max * i / num_intervals
                 losses_i = r_pu_eff * p_i ** 2
                 slope_i = r_pu_eff * 2 * p_i
