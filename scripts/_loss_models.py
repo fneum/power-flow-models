@@ -3,7 +3,9 @@ Extra functionality implementing loss models.
 """
 
 __author__ = "Fabian Neumann (KIT), Anika Bitsch (KIT)"
-__copyright__ = "Copyright 2019-2020 Fabian Neumann (KIT), Anika Bitsch (KIT), GNU GPL 3"
+__copyright__ = (
+    "Copyright 2019-2020 Fabian Neumann (KIT), Anika Bitsch (KIT), GNU GPL 3"
+)
 
 import pypsa
 import numpy as np
@@ -35,7 +37,7 @@ def cosine(network, snapshots):
     lower_flow = {}
 
     for branch in passive_branches.index:
-        
+
         bus0 = passive_branches.at[branch, "bus0"]
         bus1 = passive_branches.at[branch, "bus1"]
         bt = branch[0]
@@ -353,6 +355,7 @@ def post_processing(network, snapshots, duals):
 
     loss = pd.DataFrame(0, index=snapshots, columns=network.lines.index)
 
+    # TODO this is potentially very slow for large networks!
     for branch in passive_branches.index:
         bt = branch[0]
         bn = branch[1]

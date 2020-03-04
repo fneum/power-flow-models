@@ -3,7 +3,9 @@ Solve lossy networks.
 """
 
 __author__ = "Fabian Neumann (KIT), Anika Bitsch (KIT)"
-__copyright__ = "Copyright 2019-2020 Fabian Neumann (KIT), Anika Bitsch (KIT), GNU GPL 3"
+__copyright__ = (
+    "Copyright 2019-2020 Fabian Neumann (KIT), Anika Bitsch (KIT), GNU GPL 3"
+)
 
 import pypsa
 import numpy as np
