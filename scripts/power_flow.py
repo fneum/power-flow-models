@@ -1,3 +1,10 @@
+"""
+Run power flow on solved networks.
+"""
+
+__author__ = "Fabian Neumann (KIT), Anika Bitsch (KIT)"
+__copyright__ = "Copyright 2019-2020 Fabian Neumann (KIT), Anika Bitsch (KIT), GNU GPL 3"
+
 import pypsa
 
 import logging
