@@ -10,18 +10,8 @@ import numpy as np
 import pandas as pd
 import os
 import sys
-import gc
-import logging
-import pyomo.kernel as pmo
-import pyomo.environ as penv
 
-from pypsa import opf
-from pypsa.opt import LConstraint, l_constraint, LExpression
-from pypsa.descriptors import free_output_series_dataframes
-from six import iteritems, itervalues, string_types
-from pyomo.environ import Constraint, Objective, Var, ComponentUID
 from vresutils.benchmark import memory_logger
-from pyomo.util.infeasible import log_infeasible_constraints
 
 import logging
 
