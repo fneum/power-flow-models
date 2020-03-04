@@ -44,11 +44,8 @@ def cosine(network, snapshots):
         bn = branch[1]
 
         x_pu_eff = passive_branches.at[branch, "x_pu_eff"]
-        x = passive_branches.at[branch, "x"]
         r_pu_eff = passive_branches.at[branch, "r_pu_eff"]
-        r = passive_branches.at[branch, "r"]
-        g = r / (x ** 2)
-        g_pu_eff = g * (passive_branches.at[branch, "v_nom"] ** 2)
+        g_pu_eff = r_pu_eff / (x_pu_eff ** 2)
         s_max_pu = passive_branches.at[branch, "s_max_pu"]
         s = s_max_pu * passive_branches.at[branch, "s_nom"]
 
