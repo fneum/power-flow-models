@@ -35,7 +35,7 @@ rule solve_network:
         memory="logs/elec_s_{clusters}_lcopt_{opts}_M{model}_memory.log"
     threads: 4
     resources: mem=memory
-    script: "scripts/solve_lossy_network.py"
+    script: "scripts/solve_network.py"
 
 rule solve_all_networks:
     input: 
