@@ -2,8 +2,6 @@
 Extra functionality implementing loss models.
 """
 
-# TODO implement nomopyomo variant
-
 __author__ = "Fabian Neumann (KIT), Anika Bitsch (KIT)"
 __copyright__ = (
     "Copyright 2019-2020 Fabian Neumann (KIT), Anika Bitsch (KIT), GNU GPL 3"

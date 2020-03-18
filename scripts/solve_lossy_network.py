@@ -29,7 +29,7 @@ from solve_network import *
 pypsa.pf.logger.setLevel(logging.WARNING)
 
 
-def remove_kvl(network, snapshots):
+def remove_kvl_constraints(network, snapshots):
 
     formulation = snakemake.config["solving"]["options"].get("formulation", "kirchhoff")
 
@@ -61,16 +61,16 @@ if __name__ == "__main__":
 
         n = pypsa.Network(snakemake.input[0])
 
-        n.lines.s_nom_max = n.lines.s_nom + config["additional_s_nom"]
+        # network adjustments
         n.links.p_nom_max = config["links_p_nom_max"]
-
+        n.lines.s_nom_max = n.lines.s_nom + config["additional_s_nom"]
         n.lines = n.lines.loc[n.lines.s_nom != 0]
 
         n = prepare_network(n, solve_opts=snakemake.config["solving"]["options"])
 
         # set extra_functionality
         if model == "transport":
-            extra_functionality = remove_kvl
+            extra_functionality = remove_kvl_constraints
         elif model == "lossy":
             extra_functionality = define_loss_constraints
         else:
@@ -81,7 +81,6 @@ if __name__ == "__main__":
             extra_postprocessing = store_losses
         else:
             extra_postprocessing = None
-
 
         n = solve_network(
             n,
