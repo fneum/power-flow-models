@@ -8,6 +8,7 @@ __copyright__ = (
 )
 
 import pandas as pd
+import numpy as np
 
 from pypsa.descriptors import get_switchable_as_dense
 from pypsa.opt import LConstraint, l_constraint, LExpression
@@ -29,6 +30,7 @@ def define_loss_constraints(network, snapshots):
     tangents = network.tangents
 
     positions = range(1, tangents + 1)
+    signs = [-1, 1]
 
     passive_branches = network.passive_branches()
 
@@ -54,9 +56,13 @@ def define_loss_constraints(network, snapshots):
         attr = "s_nom_max" if s_nom_extendable else "s_nom"
         s_nom_max = passive_branches.at[branch, attr]
 
+        assert np.isfinite(s_nom_max) and not np.isnan(
+            s_nom_max
+        ), f"Infinite or non-existent 's_nom_max' encountered at line {bn}"
+
         for sn in snapshots:
 
-            s_max_pu = s_max_pus.loc[bn, sn]
+            s_max_pu = s_max_pus.loc[sn, bn]
 
             # adjust kcl
             # use of ._body because of pyomo bug
@@ -67,6 +73,7 @@ def define_loss_constraints(network, snapshots):
 
             # adjust flow limits
             network.model.flow_upper[bt, bn, sn]._body += network.model.loss[bt, bn, sn]
+            network.model.flow_lower[bt, bn, sn]._body -= network.model.loss[bt, bn, sn]
 
             # upper loss limit
             lhs = LExpression(
@@ -83,7 +90,7 @@ def define_loss_constraints(network, snapshots):
                 slope_k = 2 * r_pu_eff * p_k
                 offset_k = loss_k - slope_k * p_k
 
-                for sign in (-1, 1):
+                for sign in signs:
 
                     lhs = LExpression([(1, network.model.loss[bt, bn, sn])])
                     rhs = LExpression(
@@ -100,6 +107,7 @@ def define_loss_constraints(network, snapshots):
         network.model,
         "loss_tangents",
         loss_tangents,
+        signs,
         list(positions),
         list(passive_branches.index),
         snapshots,

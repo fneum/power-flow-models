@@ -75,7 +75,7 @@ if __name__ == "__main__":
         if model == "transport":
             extra_functionality = remove_kvl_constraints
         elif model == "lossy":
-            n.tangents = model_wc[1]
+            n.tangents = int(model_wc[1])
             extra_functionality = define_loss_constraints
         else:
             extra_functionality = None
