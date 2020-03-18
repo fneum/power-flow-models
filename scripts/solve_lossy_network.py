@@ -29,6 +29,17 @@ from solve_network import *
 pypsa.pf.logger.setLevel(logging.WARNING)
 
 
+def remove_kvl(network, snapshots):
+
+    formulation = snakemake.config["solving"]["options"].get("formulation", "kirchhoff")
+
+    if formulation in ["angles", "cycles", "ptdf"]:
+        n.model.del_component(network.model.passive_branch_p_def)
+    
+    if formulation in ["cycles", "kirchhoff"]:
+        n.model.del_component(network.model.cycle_constraints)
+
+
 if __name__ == "__main__":
 
     logging.basicConfig(
@@ -57,13 +68,28 @@ if __name__ == "__main__":
 
         n = prepare_network(n, solve_opts=snakemake.config["solving"]["options"])
 
+        # set extra_functionality
+        if model == "transport":
+            extra_functionality = remove_kvl
+        elif model == "lossy":
+            extra_functionality = define_loss_constraints
+        else:
+            extra_functionality = None
+
+        # set extra_postprocessing
+        if model == "lossy":
+            extra_postprocessing = store_losses
+        else:
+            extra_postprocessing = None
+
+
         n = solve_network(
             n,
             config=snakemake.config["solving"],
             solver_log=snakemake.log.solver,
             opts=snakemake.wildcards.opts,
-            extra_functionality=define_loss_constraints,
-            extra_postprocessing=store_losses,
+            extra_functionality=extra_functionality,
+            extra_postprocessing=extra_postprocessing
         )
 
         n.export_to_netcdf(snakemake.output[0])
