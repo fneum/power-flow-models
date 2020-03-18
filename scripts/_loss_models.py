@@ -24,9 +24,11 @@ def set_from_series(df, series, snapshots):
     df.loc[snapshots] = series.unstack(0).reindex(columns=df.columns)
 
 
-def define_loss_constraints(network, snapshots, num_intervals=3):
+def define_loss_constraints(network, snapshots):
 
-    positions = range(1, num_intervals + 1)
+    tangents = network.tangents
+
+    positions = range(1, tangents + 1)
 
     passive_branches = network.passive_branches()
 
@@ -76,7 +78,7 @@ def define_loss_constraints(network, snapshots, num_intervals=3):
             # loss tangents
             for k in positions:
 
-                p_k = k / num_intervals * s_max_pu * s_nom_max
+                p_k = k / tangents * s_max_pu * s_nom_max
                 loss_k = r_pu_eff * p_k ** 2
                 slope_k = 2 * r_pu_eff * p_k
                 offset_k = loss_k - slope_k * p_k

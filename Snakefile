@@ -7,10 +7,11 @@ subworkflow pypsaeur:
 wildcard_constraints:
     clusters="[0-9]+m?|all",
     opts="[-+a-zA-Z0-9\.]*",
-    model="(transport|lossless|lossy)",
+    model="(transport|lossless|lossy-[0-9]+)",
     slack="(distributed|regular)"
 
 
+# adapted from https://github.com/PyPSA/pypsa-eur/blob/master/Snakefile
 def memory(w):
     factor = 6.
     for o in w.opts.split('-'):
@@ -50,7 +51,7 @@ rule check_powerflow:
     output: "results/pf/elec_s_{clusters}_ec_lcopt_{opts}_M{model}_S{slack}.nc"
     script: "scripts/power_flow.py"
 
-rule check_all_power_flows:
+rule check_all_powerflows:
     input: 
         expand("results/pf/elec_s_{clusters}_ec_lcopt_{opts}_M{model}_S{slack}.nc",
                **config["scenario"]),

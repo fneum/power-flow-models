@@ -47,13 +47,16 @@ if __name__ == "__main__":
     )
 
     config = snakemake.config
-    model = snakemake.wildcards.model
+
+    model_wc = snakemake.wildcards.model.split("-")
+    model = model_wc[0]
 
     assert model in [
         "transport"
         "lossless",
         "lossy",
-    ], f"The model {loss} has not been defined. Choose 'transport', 'lossless' or 'lossy'."
+    ], f"The model {model} has not been defined. Choose 'transport', 'lossless' or 'lossy'."
+
 
     with memory_logger(
         filename=getattr(snakemake.log, "memory", None), interval=30.0
@@ -72,6 +75,7 @@ if __name__ == "__main__":
         if model == "transport":
             extra_functionality = remove_kvl_constraints
         elif model == "lossy":
+            n.tangents = model_wc[1]
             extra_functionality = define_loss_constraints
         else:
             extra_functionality = None

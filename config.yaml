@@ -3,7 +3,7 @@ logging_level: DEBUG
 scenario:
   clusters: [37, 100]
   opts: [2H]
-  loss: [cosine, square]
+  model: [transport, lossless, lossy-3, lossy-8]
   slack: [distributed, regular]
 
 additional_s_nom: 6800
@@ -11,11 +11,9 @@ links_p_nom_max: 10000
 
 solving:
   options:
-    formulation: angles
+    formulation: kirchhoff
     load_shedding: true
-    noisy_costs: false
-    min_iterations: 1
-    max_iterations: 1
+    noisy_costs: true
     clip_p_max_pu: 0.01
   solver:
     name: gurobi
@@ -29,5 +27,4 @@ solving:
     BarHomogeneous: 1
     GURO_PAR_BARDENSETHRESH: 200
     # ScaleFlag: 2
-    # ResultFile: model.ilp
     # NumericFocus: 2
