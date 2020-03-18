@@ -2,224 +2,44 @@
 Extra functionality implementing loss models.
 """
 
+# TODO implement nomopyomo variant
+
 __author__ = "Fabian Neumann (KIT), Anika Bitsch (KIT)"
 __copyright__ = (
     "Copyright 2019-2020 Fabian Neumann (KIT), Anika Bitsch (KIT), GNU GPL 3"
 )
 
-import pypsa
-import numpy as np
 import pandas as pd
 
+from pypsa.descriptors import get_switchable_as_dense
 from pypsa.opt import LConstraint, l_constraint, LExpression
-from pyomo.environ import Var, value
+from pyomo.environ import Var, NonNegativeReals
 
 
-# https://www.iit.comillas.edu/aramos/papers/losses.pdf
-def cosine(network, snapshots):
-
-    num_intervals = 3
-
-    passive_branches = network.passive_branches()
-
-    network.model.delta_angle = Var(list(passive_branches.index), snapshots)
-
-    network.model.loss = Var(list(passive_branches.index), snapshots)
-
-    loss_upper = {}
-    loss_lower = {}
-    loss_tangents_neg = {}
-    loss_tangents_pos = {}
-    delta_lower = {}
-    delta_upper = {}
-    difference = {}
-    upper_flow = {}
-    lower_flow = {}
-
-    for branch in passive_branches.index:
-
-        bus0 = passive_branches.at[branch, "bus0"]
-        bus1 = passive_branches.at[branch, "bus1"]
-        bt = branch[0]
-        bn = branch[1]
-
-        x_pu_eff = passive_branches.at[branch, "x_pu_eff"]
-        r_pu_eff = passive_branches.at[branch, "r_pu_eff"]
-        g_pu_eff = r_pu_eff / (x_pu_eff ** 2)
-        s_max_pu = passive_branches.at[branch, "s_max_pu"]
-        s = s_max_pu * passive_branches.at[branch, "s_nom"]
-
-        if passive_branches.at[branch, "s_nom_extendable"]:
-            d_theta_max = (
-                passive_branches.at[branch, "s_nom_max"]
-                * x_pu_eff
-                * passive_branches.at[branch, "s_max_pu"]
-            )
-        else:
-            d_theta_max = (
-                passive_branches.at[branch, "s_nom"]
-                * x_pu_eff
-                * passive_branches.at[branch, "s_max_pu"]
-            )
-
-        max_loss = 2 * g_pu_eff * (1 - np.cos(d_theta_max))
-
-        for sn in snapshots:
-
-            for i in range(num_intervals + 1):
-
-                d_theta_i = d_theta_max * (i / num_intervals)
-                losses_i = 2 * g_pu_eff * (1 - np.cos(d_theta_i))
-                slope_i = 2 * g_pu_eff * np.sin(d_theta_i)
-                offset_i = losses_i - (slope_i * d_theta_i)
-
-                lhs = LExpression([(1, network.model.loss[bt, bn, sn])])
-                rhs = LExpression(
-                    [(slope_i, network.model.delta_angle[bt, bn, sn])], offset_i
-                )
-                loss_tangents_pos[bt, bn, sn, i] = LConstraint(lhs, ">=", rhs)
-
-                lhs = LExpression([(1, network.model.loss[bt, bn, sn])])
-                rhs = LExpression(
-                    [(-slope_i, network.model.delta_angle[bt, bn, sn])], offset_i
-                )
-                loss_tangents_neg[bt, bn, sn, i] = LConstraint(lhs, ">=", rhs)
-
-            network.model.power_balance[bus0, sn]._body -= (
-                0.5 * network.model.loss[bt, bn, sn]
-            )
-            network.model.power_balance[bus1, sn]._body -= (
-                0.5 * network.model.loss[bt, bn, sn]
-            )
-
-            if passive_branches.at[branch, "s_nom_extendable"]:
-
-                lhs = LExpression([(1, network.model.passive_branch_p[bt, bn, sn])])
-                rhs = LExpression(
-                    [
-                        (s_max_pu, network.model.passive_branch_s_nom[bt, bn]),
-                        (-1, network.model.loss[bt, bn, sn]),
-                    ]
-                )
-                lower_flow[bt, bn, sn] = LConstraint(lhs, "<=", rhs)
-
-                lhs = LExpression([(1, network.model.passive_branch_p[bt, bn, sn])])
-                rhs = LExpression(
-                    [
-                        (-s_max_pu, network.model.passive_branch_s_nom[bt, bn]),
-                        (1, network.model.loss[bt, bn, sn]),
-                    ]
-                )
-                upper_flow[bt, bn, sn] = LConstraint(lhs, ">=", rhs)
-
-            else:
-
-                lhs = LExpression([(1, network.model.passive_branch_p[bt, bn, sn])])
-                rhs = LExpression([(-1, network.model.loss[bt, bn, sn])], (s))
-                lower_flow[bt, bn, sn] = LConstraint(lhs, "<=", rhs)
-
-                lhs = LExpression([(1, network.model.passive_branch_p[bt, bn, sn])])
-                rhs = LExpression([(1, network.model.loss[bt, bn, sn])], (-s))
-                upper_flow[bt, bn, sn] = LConstraint(lhs, ">=", rhs)
-
-            lhs = LExpression(
-                [(1, network.model.delta_angle[bt, bn, sn])], (-d_theta_max)
-            )
-            delta_upper[bt, bn, sn] = LConstraint(lhs, "<=", LExpression())
-
-            lhs = LExpression([(1, network.model.delta_angle[bt, bn, sn])], d_theta_max)
-            delta_lower[bt, bn, sn] = LConstraint(lhs, ">=", LExpression())
-
-            lhs = LExpression([(1, network.model.loss[bt, bn, sn])], (-max_loss))
-            loss_upper[bt, bn, sn] = LConstraint(lhs, "<=", LExpression())
-
-            lhs = LExpression([(1, network.model.loss[bt, bn, sn])])
-            loss_lower[bt, bn, sn] = LConstraint(lhs, ">=", LExpression())
-
-            lhs = LExpression([(1, network.model.delta_angle[bt, bn, sn])])
-            rhs = LExpression(
-                [
-                    (1, network.model.voltage_angles[bus0, sn]),
-                    (-1, network.model.voltage_angles[bus1, sn]),
-                ]
-            )
-            difference[bt, bn, sn] = LConstraint(lhs, "==", rhs)
-
-    l_constraint(
-        network.model,
-        "loss_tangents_neg",
-        loss_tangents_neg,
-        list(passive_branches.index),
-        snapshots,
-        list(range(num_intervals + 1)),
-    )
-
-    l_constraint(
-        network.model,
-        "loss_tangents_pos",
-        loss_tangents_pos,
-        list(passive_branches.index),
-        snapshots,
-        list(range(num_intervals + 1)),
-    )
-
-    l_constraint(
-        network.model, "loss_upper", loss_upper, list(passive_branches.index), snapshots
-    )
-
-    l_constraint(
-        network.model, "loss_lower", loss_lower, list(passive_branches.index), snapshots
-    )
-
-    l_constraint(
-        network.model,
-        "angle_difference",
-        difference,
-        list(passive_branches.index),
-        snapshots,
-    )
-
-    l_constraint(
-        network.model,
-        "delta_upper",
-        delta_upper,
-        list(passive_branches.index),
-        snapshots,
-    )
-
-    l_constraint(
-        network.model,
-        "delta_lower",
-        delta_lower,
-        list(passive_branches.index),
-        snapshots,
-    )
-
-    l_constraint(
-        network.model, "lower_flow", lower_flow, list(passive_branches.index), snapshots
-    )
-
-    l_constraint(
-        network.model, "upper_flow", upper_flow, list(passive_branches.index), snapshots
-    )
+# adapted from pypsa.opf.extract_optimisation_results
+def get_values(indexedvar):
+    return pd.Series(indexedvar.get_values())
 
 
-# https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6345342
-def square(network, snapshots):
+# adapted from pypsa.opf.extract_optimisation_results
+def set_from_series(df, series, snapshots):
+    df.loc[snapshots] = series.unstack(0).reindex(columns=df.columns)
 
-    num_intervals = 3
+
+def define_loss_constraints(network, snapshots, num_intervals=3):
+
+    positions = range(1, num_intervals + 1)
 
     passive_branches = network.passive_branches()
 
-    network.model.loss = Var(list(passive_branches.index), snapshots)
+    s_max_pus = get_switchable_as_dense(network, "Line", "s_max_pu")
 
-    upper_bound = {}
+    network.model.loss = Var(
+        list(passive_branches.index), snapshots, domain=NonNegativeReals
+    )
+
     loss_upper = {}
-    loss_lower = {}
-    loss_tangents_neg = {}
-    loss_tangents_pos = {}
-    upper_flow = {}
-    lower_flow = {}
+    loss_tangents = {}
 
     for branch in passive_branches.index:
 
@@ -229,134 +49,69 @@ def square(network, snapshots):
         bn = branch[1]
 
         r_pu_eff = passive_branches.at[branch, "r_pu_eff"]
-        s_max_pu = passive_branches.at[branch, "s_max_pu"]
-        s = s_max_pu * passive_branches.at[branch, "s_nom"]
 
-        if passive_branches.at[branch, "s_nom_extendable"]:
-            p_max = (
-                passive_branches.at[branch, "s_nom_max"]
-                * passive_branches.at[branch, "s_max_pu"]
-            )
-        else:
-            p_max = (
-                passive_branches.at[branch, "s_nom"]
-                * passive_branches.at[branch, "s_max_pu"]
-            )
+        s_nom_extendable = passive_branches.at[branch, "s_nom_extendable"]
+        attr = "s_nom_max" if s_nom_extendable else "s_nom"
+        s_nom_max = passive_branches.at[branch, attr]
 
         for sn in snapshots:
 
-            lhs = LExpression(
-                [(1, network.model.loss[bt, bn, sn])], -r_pu_eff * (p_max ** 2)
-            )
-            loss_upper[bt, bn, sn] = LConstraint(lhs, "<=", LExpression())
+            s_max_pu = s_max_pus.loc[bn, sn]
 
-            lhs = LExpression([(1, network.model.loss[bt, bn, sn])])
-            loss_lower[bt, bn, sn] = LConstraint(lhs, ">=", LExpression())
-
-            if passive_branches.at[branch, "s_nom_extendable"]:
-
-                lhs = LExpression([(1, network.model.passive_branch_p[bt, bn, sn])])
-                rhs = LExpression(
-                    [
-                        (s_max_pu, network.model.passive_branch_s_nom[bt, bn]),
-                        (-1, network.model.loss[bt, bn, sn]),
-                    ]
-                )
-                lower_flow[bt, bn, sn] = LConstraint(lhs, "<=", rhs)
-
-                lhs = LExpression([(1, network.model.passive_branch_p[bt, bn, sn])])
-                rhs = LExpression(
-                    [
-                        (-s_max_pu, network.model.passive_branch_s_nom[bt, bn]),
-                        (1, network.model.loss[bt, bn, sn]),
-                    ]
-                )
-                upper_flow[bt, bn, sn] = LConstraint(lhs, ">=", rhs)
-
-            else:
-
-                lhs = LExpression([(1, network.model.passive_branch_p[bt, bn, sn])])
-                rhs = LExpression([(-1, network.model.loss[bt, bn, sn])], (s))
-                lower_flow[bt, bn, sn] = LConstraint(lhs, "<=", rhs)
-
-                lhs = LExpression([(1, network.model.passive_branch_p[bt, bn, sn])])
-                rhs = LExpression([(1, network.model.loss[bt, bn, sn])], (-s))
-                upper_flow[bt, bn, sn] = LConstraint(lhs, ">=", rhs)
-
-            for i in range(num_intervals + 1):
-
-                p_i = p_max * i / num_intervals
-                losses_i = r_pu_eff * p_i ** 2
-                slope_i = r_pu_eff * 2 * p_i
-                offset_i = losses_i - slope_i * p_i
-
-                lhs = LExpression([(1, network.model.loss[bt, bn, sn])])
-                rhs = LExpression(
-                    [(slope_i, network.model.passive_branch_p[bt, bn, sn])], offset_i
-                )
-                loss_tangents_pos[i, bt, bn, sn] = LConstraint(lhs, ">=", rhs)
-
-                lhs = LExpression([(1, network.model.loss[bt, bn, sn])])
-                rhs = LExpression(
-                    [(-slope_i, network.model.passive_branch_p[bt, bn, sn])], offset_i
-                )
-                loss_tangents_neg[i, bt, bn, sn] = LConstraint(lhs, ">=", rhs)
-
-            # add p_sq to nodal power balance
+            # adjust kcl
             # use of ._body because of pyomo bug
-            network.model.power_balance[bus0, sn]._body -= (
-                0.5 * network.model.loss[bt, bn, sn]
+            for bus in [bus0, bus1]:
+                network.model.power_balance[bus, sn]._body -= (
+                    network.model.loss[bt, bn, sn] / 2
+                )
+
+            # adjust flow limits
+            network.model.flow_upper[bt, bn, sn]._body += network.model.loss[bt, bn, sn]
+
+            # upper loss limit
+            lhs = LExpression(
+                [(1, network.model.loss[bt, bn, sn])],
+                -r_pu_eff * (s_max_pu * s_nom_max) ** 2,
             )
-            network.model.power_balance[bus1, sn]._body -= (
-                0.5 * network.model.loss[bt, bn, sn]
-            )
+            loss_upper[bt, bn, sn] = LConstraint(lhs, "<=", LExpression())
+
+            # loss tangents
+            for k in positions:
+
+                p_k = k / num_intervals * s_max_pu * s_nom_max
+                loss_k = r_pu_eff * p_k ** 2
+                slope_k = 2 * r_pu_eff * p_k
+                offset_k = loss_k - slope_k * p_k
+
+                for sign in (-1, 1):
+
+                    lhs = LExpression([(1, network.model.loss[bt, bn, sn])])
+                    rhs = LExpression(
+                        [(sign * slope_k, network.model.passive_branch_p[bt, bn, sn])],
+                        offset_k,
+                    )
+                    loss_tangents[sign, k, bt, bn, sn] = LConstraint(lhs, ">=", rhs)
 
     l_constraint(
         network.model, "loss_upper", loss_upper, list(passive_branches.index), snapshots
     )
 
     l_constraint(
-        network.model, "loss_lower", loss_lower, list(passive_branches.index), snapshots
-    )
-
-    l_constraint(
         network.model,
-        "loss_tangents_neg",
-        loss_tangents_pos,
-        list(range(num_intervals + 1)),
+        "loss_tangents",
+        loss_tangents,
+        list(positions),
         list(passive_branches.index),
         snapshots,
     )
 
-    l_constraint(
-        network.model,
-        "loss_tangents_pos",
-        loss_tangents_neg,
-        list(range(num_intervals + 1)),
-        list(passive_branches.index),
-        snapshots,
+
+def store_losses(network, snapshots, duals):
+
+    network.lines_t["loss"] = pd.DataFrame(
+        0, index=snapshots, columns=network.lines.index
     )
 
-    l_constraint(
-        network.model, "lower_flow", lower_flow, list(passive_branches.index), snapshots
-    )
+    loss_values = get_values(network.model.loss)
 
-    l_constraint(
-        network.model, "upper_flow", upper_flow, list(passive_branches.index), snapshots
-    )
-
-
-def post_processing(network, snapshots, duals):
-
-    passive_branches = network.passive_branches()
-
-    loss = pd.DataFrame(0, index=snapshots, columns=network.lines.index)
-
-    # TODO this is potentially very slow for large networks!
-    for branch in passive_branches.index:
-        bt = branch[0]
-        bn = branch[1]
-        for sn in snapshots:
-            loss.loc[sn, bn] = value(network.model.loss[bt, bn, sn])
-
-    network.lines_t["loss"] = loss
+    set_from_series(network.lines_t.loss, loss_values.loc["Line"], snapshots)

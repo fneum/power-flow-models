@@ -8,8 +8,6 @@ __copyright__ = (
 )
 
 import pypsa
-import numpy as np
-import pandas as pd
 import os
 import sys
 
@@ -33,21 +31,18 @@ pypsa.pf.logger.setLevel(logging.WARNING)
 
 if __name__ == "__main__":
 
-    tmpdir = snakemake.config["solving"].get("tmpdir")
-    if tmpdir is not None:
-        patch_pyomo_tmpdir(tmpdir)
-
     logging.basicConfig(
         filename=snakemake.log.python, level=snakemake.config["logging_level"]
     )
 
     config = snakemake.config
-    loss = snakemake.wildcards.loss
+    model = snakemake.wildcards.model
 
-    assert loss in [
-        "cosine",
-        "square",
-    ], f"The loss function {loss} has not been defined. Try 'cosine' or 'square'"
+    assert model in [
+        "transport"
+        "lossless",
+        "lossy",
+    ], f"The model {loss} has not been defined. Choose 'transport', 'lossless' or 'lossy'."
 
     with memory_logger(
         filename=getattr(snakemake.log, "memory", None), interval=30.0
@@ -67,8 +62,8 @@ if __name__ == "__main__":
             config=snakemake.config["solving"],
             solver_log=snakemake.log.solver,
             opts=snakemake.wildcards.opts,
-            extra_functionality=globals()[f"{loss}"],
-            extra_postprocessing=post_processing,
+            extra_functionality=define_loss_constraints,
+            extra_postprocessing=store_losses,
         )
 
         n.export_to_netcdf(snakemake.output[0])
