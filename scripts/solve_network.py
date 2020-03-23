@@ -69,7 +69,8 @@ if __name__ == "__main__":
             lambda line: max(
                 line.s_nom + config["additional_s_nom"],
                 line.s_nom * config["s_nom_factor"],
-            )
+            ),
+            axis=1
         )
         n.lines = n.lines.loc[n.lines.s_nom != 0]
 
