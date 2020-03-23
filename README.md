@@ -5,4 +5,3 @@ Description of the formulations can be found in [this repository](https://git.sc
 ## TODOs
 
 - [ ] implement `n.lopf(pyomo=False)` variant.
-- [ ] one tangent for every 500 MW?
