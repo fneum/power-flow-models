@@ -7,7 +7,8 @@ scenario:
   slack: [distributed, regular]
 
 additional_s_nom: 6800
-links_p_nom_max: 10000
+s_nom_factor: 4
+links_p_nom_max: 20000
 
 solving:
   options:

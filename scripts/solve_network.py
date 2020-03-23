@@ -35,7 +35,7 @@ def remove_kvl_constraints(network, snapshots):
 
     if formulation in ["angles", "cycles", "ptdf"]:
         n.model.del_component(network.model.passive_branch_p_def)
-    
+
     if formulation in ["cycles", "kirchhoff"]:
         n.model.del_component(network.model.cycle_constraints)
 
@@ -52,11 +52,10 @@ if __name__ == "__main__":
     model = model_wc[0]
 
     assert model in [
-        "transport"
+        "transport",
         "lossless",
         "lossy",
     ], f"The model {model} has not been defined. Choose 'transport', 'lossless' or 'lossy'."
-
 
     with memory_logger(
         filename=getattr(snakemake.log, "memory", None), interval=30.0
@@ -66,7 +65,12 @@ if __name__ == "__main__":
 
         # network adjustments
         n.links.p_nom_max = config["links_p_nom_max"]
-        n.lines.s_nom_max = n.lines.s_nom + config["additional_s_nom"]
+        n.lines.s_nom_max = n.lines.apply(
+            lambda line: max(
+                line.s_nom + config["additional_s_nom"],
+                line.s_nom * config["s_nom_factor"],
+            )
+        )
         n.lines = n.lines.loc[n.lines.s_nom != 0]
 
         n = prepare_network(n, solve_opts=snakemake.config["solving"]["options"])
@@ -92,7 +96,7 @@ if __name__ == "__main__":
             solver_log=snakemake.log.solver,
             opts=snakemake.wildcards.opts,
             extra_functionality=extra_functionality,
-            extra_postprocessing=extra_postprocessing
+            extra_postprocessing=extra_postprocessing,
         )
 
         n.export_to_netcdf(snakemake.output[0])
