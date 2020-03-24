@@ -52,8 +52,13 @@ def define_loss_constraints(network, snapshots):
 
         r_pu_eff = passive_branches.at[branch, "r_pu_eff"]
 
-        s_nom_extendable = passive_branches.at[branch, "s_nom_extendable"]
-        attr = "s_nom_max" if s_nom_extendable else "s_nom"
+        if passive_branches.at[branch, "s_nom_extendable"]:
+            attr = "s_nom_max"
+        elif passive_branches.at[branch, "s_nom_opt"] != 0.:
+            attr = "s_nom_opt"
+        else:
+            attr = "s_nom"
+
         s_nom_max = passive_branches.at[branch, attr]
 
         assert np.isfinite(s_nom_max) and not np.isnan(
