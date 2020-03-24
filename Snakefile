@@ -48,6 +48,8 @@ rule solve_all_networks:
 
 rule check_powerflow: 
     input: "results/networks/elec_s_{clusters}_ec_lcopt_{opts}_M{model}.nc"
+    log:
+        python="logs/elec_s_{clusters}_lcopt_{opts}_M{model}_S{slack}_python.log"
     output: "results/pf/elec_s_{clusters}_ec_lcopt_{opts}_M{model}_S{slack}.nc"
     script: "scripts/power_flow.py"
 
