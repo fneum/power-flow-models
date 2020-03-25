@@ -1,4 +1,4 @@
-logging_level: DEBUG
+logging_level: INFO
 
 scenario:
   clusters: [37, 100]
@@ -21,11 +21,12 @@ solving:
     threads: 4
     method: 2 # barrier
     crossover: 0
-    BarConvTol: 1.e-5
-    FeasibilityTol: 1.e-4
+    BarConvTol: 1.e-3
+    FeasibilityTol: 1.e-3
     AggFill: 0
     PreDual: 0
     BarHomogeneous: 1
     GURO_PAR_BARDENSETHRESH: 200
+    ResultFile: "model.ilp"
     # ScaleFlag: 2
     # NumericFocus: 2
