@@ -15,6 +15,108 @@ from pypsa.opt import LConstraint, l_constraint, LExpression
 from pyomo.environ import Var, NonNegativeReals
 
 
+# adapted from pypsa.opf.define_passive_branch_constraints
+def redo_passive_branch_constraints(network, snapshots):
+
+    model_components_to_delete = [
+        "flow_upper",
+        "flow_lower",
+        "flow_upper_index",
+        "flow_lower_index",
+        "flow_upper_index_0",
+        "flow_lower_index_0",
+        "flow_upper_index_1",
+        "flow_lower_index_1",
+    ]
+    for model_component in model_components_to_delete:
+        network.model.del_component(model_component)
+
+    passive_branches = network.passive_branches()
+    extendable_branches = passive_branches[passive_branches.s_nom_extendable]
+    fixed_branches = passive_branches[~passive_branches.s_nom_extendable]
+
+    s_max_pu = pd.concat(
+        {
+            c: get_switchable_as_dense(network, c, "s_max_pu", snapshots)
+            for c in network.passive_branch_components
+        },
+        axis=1,
+        sort=False,
+    )
+
+    flow_upper = {
+        (b[0], b[1], sn): [
+            [
+                (1, network.model.passive_branch_p[b[0], b[1], sn]),
+                (1, network.model.loss[b[0], b[1], sn]),
+            ],
+            "<=",
+            s_max_pu.at[sn, b] * fixed_branches.at[b, "s_nom"],
+        ]
+        for b in fixed_branches.index
+        for sn in snapshots
+    }
+
+    flow_upper.update(
+        {
+            (b[0], b[1], sn): [
+                [
+                    (1, network.model.passive_branch_p[b[0], b[1], sn]),
+                    (1, network.model.loss[b[0], b[1], sn]),
+                    (
+                        -s_max_pu.at[sn, b],
+                        network.model.passive_branch_s_nom[b[0], b[1]],
+                    ),
+                ],
+                "<=",
+                0,
+            ]
+            for b in extendable_branches.index
+            for sn in snapshots
+        }
+    )
+
+    l_constraint(
+        network.model, "flow_upper", flow_upper, list(passive_branches.index), snapshots
+    )
+
+    flow_lower = {
+        (b[0], b[1], sn): [
+            [
+                (1, network.model.passive_branch_p[b[0], b[1], sn]),
+                (-1, network.model.loss[b[0], b[1], sn]),
+            ],
+            ">=",
+            -s_max_pu.at[sn, b] * fixed_branches.at[b, "s_nom"],
+        ]
+        for b in fixed_branches.index
+        for sn in snapshots
+    }
+
+    flow_lower.update(
+        {
+            (b[0], b[1], sn): [
+                [
+                    (1, network.model.passive_branch_p[b[0], b[1], sn]),
+                    (-1, network.model.loss[b[0], b[1], sn]),
+                    (
+                        s_max_pu.at[sn, b],
+                        network.model.passive_branch_s_nom[b[0], b[1]],
+                    ),
+                ],
+                ">=",
+                0,
+            ]
+            for b in extendable_branches.index
+            for sn in snapshots
+        }
+    )
+
+    l_constraint(
+        network.model, "flow_lower", flow_lower, list(passive_branches.index), snapshots
+    )
+
+
 # adapted from pypsa.opf.extract_optimisation_results
 def get_values(indexedvar):
     return pd.Series(indexedvar.get_values())
@@ -54,7 +156,7 @@ def define_loss_constraints(network, snapshots):
 
         if passive_branches.at[branch, "s_nom_extendable"]:
             attr = "s_nom_max"
-        elif passive_branches.at[branch, "s_nom_opt"] != 0.:
+        elif passive_branches.at[branch, "s_nom_opt"] != 0.0:
             attr = "s_nom_opt"
         else:
             attr = "s_nom"
@@ -77,8 +179,7 @@ def define_loss_constraints(network, snapshots):
                 )
 
             # adjust flow limits
-            network.model.flow_upper[bt, bn, sn]._body += network.model.loss[bt, bn, sn]
-            network.model.flow_lower[bt, bn, sn]._body -= network.model.loss[bt, bn, sn]
+            redo_passive_branch_constraints(network, snapshots)
 
             # upper loss limit
             lhs = LExpression(
