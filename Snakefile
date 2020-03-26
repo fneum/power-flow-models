@@ -13,16 +13,15 @@ wildcard_constraints:
 
 # adapted from https://github.com/PyPSA/pypsa-eur/blob/master/Snakefile
 def memory(w):
-    factor = 6.
+    factor = 3.
     for o in w.opts.split('-'):
         m = re.match(r'^(\d+)h$', o, re.IGNORECASE)
         if m is not None:
             factor /= int(m.group(1))
             break
-    if w.clusters.endswith('m'):
-        return int(factor * (18000 + 180 * int(w.clusters[:-1])))
-    else:
-        return int(factor * (10000 + 195 * int(w.clusters)))
+    if "lossy" in w.model:
+        factor *= 0.5 * int(w.model.split("-")[-1])
+    return int(factor * (10000 + 195 * int(w.clusters)))
 
 
 # SOLVING RULES
