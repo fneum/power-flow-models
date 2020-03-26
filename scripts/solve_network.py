@@ -76,20 +76,26 @@ if __name__ == "__main__":
 
         n = prepare_network(n, solve_opts=snakemake.config["solving"]["options"])
 
-        # set extra_functionality
+        # set extra_functionality, extra_postprocessing, iterating
         if model == "transport":
             extra_functionality = remove_kvl_constraints
+            extra_postprocessing = None
+            skip_iterating = True
         elif model == "lossy":
             n.tangents = int(model_wc[1])
             extra_functionality = define_loss_constraints
-        else:
-            extra_functionality = None
-
-        # set extra_postprocessing
-        if model == "lossy":
             extra_postprocessing = store_losses
-        else:
+            skip_iterating = False
+        elif model == "lossless":
+            extra_functionality = None
             extra_postprocessing = None
+            iterations = int(model_wc[1])
+            if iterations == 0:
+                skip_iterating = True
+            else:
+                skip_iterating = False
+                snakemake.config["solving"]["options"]["max_iterations"] = iterations
+                snakemake.config["solving"]["options"]["min_iterations"] = iterations
 
         n = solve_network(
             n,
@@ -98,6 +104,7 @@ if __name__ == "__main__":
             opts=snakemake.wildcards.opts,
             extra_functionality=extra_functionality,
             extra_postprocessing=extra_postprocessing,
+            skip_iterating=skip_iterating,
         )
 
         n.export_to_netcdf(snakemake.output[0])

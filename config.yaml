@@ -3,11 +3,11 @@ logging_level: INFO
 scenario:
   clusters: [37, 100]
   opts: [2H]
-  model: [transport, lossless, lossy-3, lossy-8]
+  model: [transport, lossless-0, lossless-3, lossy-3, lossy-8]
   slack: [distributed, regular]
 
 additional_s_nom: 6800
-s_nom_factor: 4
+s_nom_factor: 2
 links_p_nom_max: 20000
 
 solving:
