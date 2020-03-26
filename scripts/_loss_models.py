@@ -142,6 +142,8 @@ def define_loss_constraints(network, snapshots):
         list(passive_branches.index), snapshots, domain=NonNegativeReals
     )
 
+    redo_passive_branch_constraints(network, snapshots)
+
     loss_upper = {}
     loss_tangents = {}
 
@@ -177,9 +179,6 @@ def define_loss_constraints(network, snapshots):
                 network.model.power_balance[bus, sn]._body -= (
                     network.model.loss[bt, bn, sn] / 2
                 )
-
-            # adjust flow limits
-            redo_passive_branch_constraints(network, snapshots)
 
             # upper loss limit
             lhs = LExpression(
