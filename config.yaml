@@ -6,9 +6,13 @@ scenario:
   model: [transport, lossless-0, lossless-3, lossy-3, lossy-8]
   slack: [distributed, regular]
 
-additional_s_nom: 6800
-s_nom_factor: 2
-links_p_nom_max: 20000
+lines:
+  s_nom_add: 6800
+  s_nom_factor: 2
+
+links:
+  p_nom_max: 20000
+  efficiency_per_length: 3.e-5
 
 solving:
   options:
