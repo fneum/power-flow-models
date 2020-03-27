@@ -1,13 +1,13 @@
 logging_level: INFO
 
 scenario:
-  clusters: [37, 100]
+  clusters: [100]
   opts: [2H]
-  model: [transport, lossless-0, lossless-3, lossy-3, lossy-8]
+  model: [transport, lossless-0, lossless-3, lossy-5, lossy-8]
   slack: [distributed, regular]
 
 lines:
-  s_nom_add: 6800
+  s_nom_add: 10000
   s_nom_factor: 2
 
 links:
@@ -16,9 +16,11 @@ links:
 
 solving:
   options:
+    min_iterations: 2
+    max_iteratoins: 3
     formulation: kirchhoff
     load_shedding: true
-    noisy_costs: true
+    noisy_costs: false
     clip_p_max_pu: 0.01
   solver:
     name: gurobi
@@ -31,6 +33,6 @@ solving:
     PreDual: 0
     BarHomogeneous: 1
     GURO_PAR_BARDENSETHRESH: 200
-    ResultFile: "model.ilp"
+    # ResultFile: "model.ilp"
     # ScaleFlag: 2
     # NumericFocus: 2
