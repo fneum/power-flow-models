@@ -80,14 +80,15 @@ if __name__ == "__main__":
 
     config = snakemake.config
 
-    model_wc = snakemake.wildcards.model.split("-")
-    model = model_wc[0]
+    flow_model_wc = snakemake.wildcards.model.split("-")
+    flow_model = flow_model_wc[0]
+    n.flow_model = model
 
-    assert model in [
+    assert flow_model in [
         "transport",
         "lossless",
         "lossy",
-    ], f"The model {model} has not been defined. Choose 'transport', 'lossless' or 'lossy'."
+    ], f"The flow model {flow_model} has not been defined. Choose 'transport', 'lossless' or 'lossy'."
 
     with memory_logger(
         filename=getattr(snakemake.log, "memory", None), interval=30.0
@@ -113,13 +114,13 @@ if __name__ == "__main__":
         n = prepare_network(n, solve_opts=snakemake.config["solving"]["options"])
 
         # set iterating
-        if model == "transport":
+        if flow_model == "transport":
             skip_iterating = True
-        elif model == "lossy":
-            n.tangents = int(model_wc[1])
+        elif flow_model == "lossy":
+            n.tangents = int(flow_model_wc[1])
             skip_iterating = False
-        elif model == "lossless":
-            iterations = int(model_wc[1])
+        elif flow_model == "lossless":
+            iterations = int(flow_model_wc[1])
             if iterations == 0:
                 skip_iterating = True
             else:
@@ -129,13 +130,13 @@ if __name__ == "__main__":
 
         def extra_functionality(network, snapshots):
             tie_bidirectional_link_p_nom(network, snapshots)
-            if model == "transport":
+            if network.flow_model == "transport":
                 remove_kvl_constraints(network, snapshots)
-            if model == "lossy"
+            if network.flow_model == "lossy"
                 define_loss_constraints(network, snapshots)
 
         def extra_postprocessing(network, snapshots, duals):
-            if model == "lossy":
+            if network.flow_model == "lossy":
                 store_losses(network, snapshots, duals)
 
         n = solve_network(
