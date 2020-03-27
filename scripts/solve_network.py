@@ -82,7 +82,6 @@ if __name__ == "__main__":
 
     flow_model_wc = snakemake.wildcards.model.split("-")
     flow_model = flow_model_wc[0]
-    n.flow_model = model
 
     assert flow_model in [
         "transport",
@@ -95,6 +94,8 @@ if __name__ == "__main__":
     ) as mem:
 
         n = pypsa.Network(snakemake.input[0])
+        
+        n.flow_model = flow_model
 
         lk_config = config["links"]
         n.lines.s_nom_max = n.lines.apply(
