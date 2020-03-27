@@ -130,7 +130,7 @@ if __name__ == "__main__":
         def extra_functionality(network, snapshots):
             tie_bidirectional_link_p_nom(network, snapshots)
             if model == "transport":
-                remove_kvl_constraints(netowrk, snapshots)
+                remove_kvl_constraints(network, snapshots)
             if model == "lossy"
                 define_loss_constraints(network, snapshots)
 
