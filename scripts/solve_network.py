@@ -133,7 +133,7 @@ if __name__ == "__main__":
             tie_bidirectional_link_p_nom(network, snapshots)
             if network.flow_model == "transport":
                 remove_kvl_constraints(network, snapshots)
-            if network.flow_model == "lossy"
+            elif network.flow_model == "lossy":
                 define_loss_constraints(network, snapshots)
 
         def extra_postprocessing(network, snapshots, duals):
