@@ -31,7 +31,7 @@ pypsa.pf.logger.setLevel(logging.WARNING)
 
 
 def split_bidirectional_links(n):
-    
+
     n.links.p_min_pu = 0
     rev_links = n.links.copy().rename({"bus0": "bus1", "bus1": "bus0"}, axis=1)
     rev_links.capital_cost = 0
@@ -53,22 +53,22 @@ def remove_kvl_constraints(network, snapshots):
 
 
 def tie_bidirectional_link_p_nom(network, snapshots):
-    
+
     if not hasattr(n.links, 'reversed'): return
-    
+
     ext_rev_links = network.links.loc[
                         (network.links.reversed==True) & 
                         (network.links.p_nom_extendable==True)
                     ].index
 
     if len(ext_rev_links) == 0: return
-    
+
     constraints = {lk :
             [[(1,network.model.link_p_nom[lk.split("-")[0]]),
               (-1,network.model.link_p_nom[lk])
              ],"==",0.]
         for lk in ext_rev_links}
-    
+
     l_constraint(network.model, "bidirectional_link", constraints, list(ext_rev_links))
 
 
