@@ -97,7 +97,7 @@ if __name__ == "__main__":
         
         n.flow_model = flow_model
 
-        lk_config = config["links"]
+        ln_config = config["lines"]
         n.lines.s_nom_max = n.lines.apply(
             lambda line: max(
                 line.s_nom + lk_config["s_nom_add"],
@@ -107,7 +107,7 @@ if __name__ == "__main__":
         )
         n.lines = n.lines.loc[n.lines.s_nom != 0]
 
-        lk_config = config["lines"]
+        lk_config = config["links"]
         n.links.p_nom_max = lk_config["p_nom_max"]
         n.links.efficiency = n.links.apply(lambda lk: 1 - lk.length * lk_config["efficiency_per_length"], axis=1)
         split_bidirectional_links(n)
