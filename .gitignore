@@ -5,3 +5,6 @@ dconf
 results
 *.ipynb_checkpoints
 *.ipynb
+summary
+*.nc
+*.log
