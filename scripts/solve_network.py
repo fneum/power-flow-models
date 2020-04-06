@@ -10,6 +10,8 @@ __copyright__ = (
 import pypsa
 import os
 import sys
+import numpy as np
+import pandas as pd
 
 from vresutils.benchmark import memory_logger
 from pypsa.opt import l_constraint
@@ -54,22 +56,59 @@ def remove_kvl_constraints(network, snapshots):
 
 def tie_bidirectional_link_p_nom(network, snapshots):
 
-    if not hasattr(n.links, 'reversed'): return
+    if not hasattr(n.links, "reversed"):
+        return
 
     ext_rev_links = network.links.loc[
-                        (network.links.reversed==True) & 
-                        (network.links.p_nom_extendable==True)
-                    ].index
+        (network.links.reversed == True) & (network.links.p_nom_extendable == True)
+    ].index
 
-    if len(ext_rev_links) == 0: return
+    if len(ext_rev_links) == 0:
+        return
 
-    constraints = {lk :
-            [[(1,network.model.link_p_nom[lk.split("-")[0]]),
-              (-1,network.model.link_p_nom[lk])
-             ],"==",0.]
-        for lk in ext_rev_links}
+    constraints = {
+        lk: [
+            [
+                (1, network.model.link_p_nom[lk.split("-")[0]]),
+                (-1, network.model.link_p_nom[lk]),
+            ],
+            "==",
+            0.0,
+        ]
+        for lk in ext_rev_links
+    }
 
     l_constraint(network.model, "bidirectional_link", constraints, list(ext_rev_links))
+
+
+def update_line_parameters(n):
+
+    lines_ext_b = n.lines.s_nom_extendable
+
+    if not lines_ext_b.any():
+        return
+
+    lines = pd.DataFrame(n.lines[["r", "x", "type", "num_parallel"]])
+
+    lines["s_nom"] = (
+        np.sqrt(3)
+        * n.lines["type"].map(n.line_types.i_nom)
+        * n.lines.bus0.map(n.buses.v_nom)
+    ).where(n.lines.type != "", n.lines["s_nom"])
+
+    lines_ext_untyped_b = (n.lines.type == "") & lines_ext_b
+    lines_ext_typed_b = (n.lines.type != "") & lines_ext_b
+
+    if lines_ext_untyped_b.any():
+        for attr in ("r", "x"):
+            n.lines.loc[lines_ext_untyped_b, attr] = lines[attr].multiply(
+                lines["s_nom"] / n.lines["s_nom_opt"]
+            )
+
+    if lines_ext_typed_b.any():
+        n.lines.loc[lines_ext_typed_b, "num_parallel"] = (
+            n.lines["s_nom_opt"] / lines["s_nom"]
+        )
 
 
 if __name__ == "__main__":
@@ -94,7 +133,7 @@ if __name__ == "__main__":
     ) as mem:
 
         n = pypsa.Network(snakemake.input[0])
-        
+
         n.flow_model = flow_model
 
         ln_config = config["lines"]
@@ -103,13 +142,15 @@ if __name__ == "__main__":
                 line.s_nom + lk_config["s_nom_add"],
                 line.s_nom * lk_config["s_nom_factor"],
             ),
-            axis=1
+            axis=1,
         )
         n.lines = n.lines.loc[n.lines.s_nom != 0]
 
         lk_config = config["links"]
         n.links.p_nom_max = lk_config["p_nom_max"]
-        n.links.efficiency = n.links.apply(lambda lk: 1 - lk.length * lk_config["efficiency_per_length"], axis=1)
+        n.links.efficiency = n.links.apply(
+            lambda lk: 1 - lk.length * lk_config["efficiency_per_length"], axis=1
+        )
         split_bidirectional_links(n)
 
         n = prepare_network(n, solve_opts=snakemake.config["solving"]["options"])
@@ -126,7 +167,9 @@ if __name__ == "__main__":
                 skip_iterating = True
             else:
                 skip_iterating = False
-                snakemake.config["solving"]["options"]["min_iterations"] = iterations - 1
+                snakemake.config["solving"]["options"]["min_iterations"] = (
+                    iterations - 1
+                )
                 snakemake.config["solving"]["options"]["max_iterations"] = iterations
 
         def extra_functionality(network, snapshots):
@@ -149,6 +192,8 @@ if __name__ == "__main__":
             extra_postprocessing=extra_postprocessing,
             skip_iterating=skip_iterating,
         )
+
+        update_line_parameters(n)
 
         n.export_to_netcdf(snakemake.output[0])
 

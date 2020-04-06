@@ -4,4 +4,6 @@ Description of the formulations can be found in [this repository](https://git.sc
 
 ## TODOs
 
+- [ ] extract computation time and memory consumption
+- [ ] illustration of feasible space
 - [ ] implement `n.lopf(pyomo=False)` variant.
