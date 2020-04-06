@@ -139,8 +139,8 @@ if __name__ == "__main__":
         ln_config = config["lines"]
         n.lines.s_nom_max = n.lines.apply(
             lambda line: max(
-                line.s_nom + lk_config["s_nom_add"],
-                line.s_nom * lk_config["s_nom_factor"],
+                line.s_nom + ln_config["s_nom_add"],
+                line.s_nom * ln_config["s_nom_factor"],
             ),
             axis=1,
         )
