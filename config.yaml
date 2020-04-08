@@ -17,7 +17,7 @@ links:
 solving:
   options:
     min_iterations: 2
-    max_iteratoins: 3
+    max_iterations: 3
     formulation: kirchhoff
     load_shedding: true
     noisy_costs: false
