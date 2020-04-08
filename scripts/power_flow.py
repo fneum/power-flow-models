@@ -41,6 +41,9 @@ if __name__ == "__main__":
     pq_gen_selection = n.generators[n.generators.bus == init_bus]
     n.generators.loc[pq_gen_selection.index, "control"] = "PQ"
 
-    n.pf(distribute_slack=slack)
+    log = n.pf(distribute_slack=slack)
+
+    for k, v in log.items():
+        n[f"pf_{k}"] = pd.DataFrame(v)
 
     n.export_to_netcdf(snakemake.output[0])
