@@ -145,6 +145,7 @@ if __name__ == "__main__":
             axis=1,
         )
         n.lines = n.lines.loc[n.lines.s_nom != 0]
+        n.lines.s_max_pu = ln_config['s_max_pu']
 
         lk_config = config["links"]
         n.links.p_nom_max = lk_config["p_nom_max"]

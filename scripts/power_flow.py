@@ -8,6 +8,7 @@ __copyright__ = (
 )
 
 import pypsa
+import pandas as pd
 
 import logging
 
