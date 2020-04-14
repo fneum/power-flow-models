@@ -168,9 +168,7 @@ if __name__ == "__main__":
                 skip_iterating = True
             else:
                 skip_iterating = False
-                snakemake.config["solving"]["options"]["min_iterations"] = (
-                    iterations - 1
-                )
+                snakemake.config["solving"]["options"]["min_iterations"] = iterations
                 snakemake.config["solving"]["options"]["max_iterations"] = iterations
 
         def extra_functionality(network, snapshots):
