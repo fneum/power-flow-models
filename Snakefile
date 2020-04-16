@@ -49,7 +49,9 @@ rule check_powerflow:
     input: "results/networks/elec_s_{clusters}_ec_lcopt_{opts}_M{model}.nc"
     log:
         python="logs/elec_s_{clusters}_lcopt_{opts}_M{model}_S{slack}_python.log"
-    output: "results/pf/elec_s_{clusters}_ec_lcopt_{opts}_M{model}_S{slack}.nc"
+    output:
+        network="results/pf/elec_s_{clusters}_ec_lcopt_{opts}_M{model}_S{slack}.nc",
+        pf_log="results/pf/log_elec_s_{clusters}_ec_lcopt_{opts}_M{model}_S{slack}.csv"
     script: "scripts/power_flow.py"
 
 rule check_all_powerflows:

@@ -8,6 +8,7 @@ __copyright__ = (
 )
 
 import pypsa
+import pandas as pd
 
 import logging
 
@@ -43,8 +44,6 @@ if __name__ == "__main__":
 
     log = n.pf(distribute_slack=slack)
 
-    n.pf_n_iter = log.n_iter
-    n.pf_error = log.error
-    n.pf_converged = log.converged
+    pd.concat(log, axis=1).to_csv(snakemake.output.pf_log)
 
-    n.export_to_netcdf(snakemake.output[0])
+    n.export_to_netcdf(snakemake.output.network)
