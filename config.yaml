@@ -10,10 +10,11 @@ lines:
   s_nom_add: 5000
   s_nom_factor: 2
   s_max_pu: 0.7
+  loss_per_length: 5.e-5  # only applies to lossy transport model
 
 links:
   p_nom_max: 16000
-  efficiency_per_length: 3.e-5
+  loss_per_length: 3.e-5
 
 solving:
   options:

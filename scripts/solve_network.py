@@ -151,7 +151,7 @@ if __name__ == "__main__":
         n.links.p_nom_max = lk_config["p_nom_max"]
         if flow_model == "lossy":
             n.links.efficiency = n.links.apply(
-                lambda lk: 1 - lk.length * lk_config["efficiency_per_length"], axis=1
+                lambda lk: 1 - lk.length * lk_config["loss_per_length"], axis=1
             )
         split_bidirectional_links(n)
 
