@@ -149,9 +149,10 @@ if __name__ == "__main__":
 
         lk_config = config["links"]
         n.links.p_nom_max = lk_config["p_nom_max"]
-        n.links.efficiency = n.links.apply(
-            lambda lk: 1 - lk.length * lk_config["efficiency_per_length"], axis=1
-        )
+        if flow_model == "lossy":
+            n.links.efficiency = n.links.apply(
+                lambda lk: 1 - lk.length * lk_config["efficiency_per_length"], axis=1
+            )
         split_bidirectional_links(n)
 
         n = prepare_network(n, solve_opts=snakemake.config["solving"]["options"])
