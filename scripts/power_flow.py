@@ -25,6 +25,9 @@ if __name__ == "__main__":
 
     n = pypsa.Network(snakemake.input[0])
 
+    # remove load shedding generators (for distribution of slack)
+    n.mremove("Generator", n.generators.loc[n.generators.carrier == "load"].index)
+
     set_components = n.controllable_one_port_components.union(
         n.controllable_branch_components
     ) - {"Load"}
