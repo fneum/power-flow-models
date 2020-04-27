@@ -260,7 +260,7 @@ if __name__ == "__main__":
                 define_loss_constraints(network, snapshots)
 
         def extra_postprocessing(network, snapshots, duals):
-            if "lossy" in network.flow_model:
+            if network.flow_model == "lossy":
                 store_losses(network, snapshots, duals)
 
         n = solve_network(
