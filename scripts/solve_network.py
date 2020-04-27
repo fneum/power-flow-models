@@ -15,6 +15,7 @@ import pandas as pd
 
 from vresutils.benchmark import memory_logger
 from pypsa.opt import l_constraint
+from copy import deepcopy
 
 import logging
 
@@ -166,15 +167,16 @@ def ac_links_to_lines(n, lines_orig):
     def _get_ac_links(n, reverse=True):
 
         links = n.links.copy()
-        links_t = n.links_t.copy()
+        links_t_p0 = n.links_t.p0.copy()
+        links_t_p1 = n.links_t.p1.copy()
 
         if reverse:
             ln = links.loc[(links.reversed == True) & (links.carrier == "AC")]
         else:
             ln = links.loc[links.carrier == "AC"]
 
-        ln_p0 = links_t.p0.loc[:, ln.index]
-        ln_p1 = links_t.p1.loc[:, ln.index]
+        ln_p0 = links_t_p0.loc[:, ln.index]
+        ln_p1 = links_t_p1.loc[:, ln.index]
 
         def orig_name(l):
             return l.split("-")[1]
