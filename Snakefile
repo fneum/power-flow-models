@@ -7,7 +7,7 @@ subworkflow pypsaeur:
 wildcard_constraints:
     clusters="[0-9]+m?|all",
     opts="[-+a-zA-Z0-9\.]*",
-    model="(transport|lossless-[0-9]+|lossy-[0-9]+-[0-9]+)",
+    model="(transport|lossytransport|lossless-[0-9]+|lossy-[0-9]+-[0-9]+)",
     slack="(distributed|regular)"
 
 
