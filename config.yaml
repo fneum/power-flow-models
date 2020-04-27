@@ -3,14 +3,24 @@ logging_level: INFO
 scenario:
   clusters: [150]
   opts: [2H]
-  model: [transport, lossless-0, lossless-3, lossy-3, lossy-5, lossy-8]
+  model:
+    [
+      transport,
+      lossytransport,
+      lossless-0,
+      lossless-3,
+      lossy-3-0,
+      lossy-5-0,
+      lossy-3-3,
+      lossy-5-3,
+    ]
   slack: [distributed]
 
 lines:
   s_nom_add: 5000
   s_nom_factor: 2
   s_max_pu: 0.7
-  loss_per_length: 5.e-5  # only applies to lossy transport model
+  loss_per_length: 5.e-5 # only applies to lossy transport model
 
 links:
   p_nom_max: 16000
