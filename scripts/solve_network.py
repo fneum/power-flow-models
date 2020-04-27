@@ -124,7 +124,7 @@ def modify_line_attributes(n, ln_config):
 
 def modify_link_attributes(n, lk_config):
     n.links.p_nom_max = lk_config["p_nom_max"]
-    if n.flow_model == "lossy":
+    if "lossy" in n.flow_model:
         n.links.efficiency = n.links.apply(
             lambda lk: 1 - lk.length * lk_config["loss_per_length"], axis=1
         )
@@ -165,13 +165,16 @@ def ac_links_to_lines(n, lines_orig):
 
     def _get_ac_links(n, reverse=True):
 
-        if reverse:
-            ln = n.links.loc[(n.links.reversed == True) & (n.links.carrier == "AC")]
-        else:
-            ln = n.links.loc[n.links.carrier == "AC"]
+        links = n.links.copy()
+        links_t = n.links_t.copy()
 
-        ln_p0 = n.links_t.p0.loc[:, ln.index]
-        ln_p1 = n.links_t.p1.loc[:, ln.index]
+        if reverse:
+            ln = links.loc[(links.reversed == True) & (links.carrier == "AC")]
+        else:
+            ln = links.loc[links.carrier == "AC"]
+
+        ln_p0 = links_t.p0.loc[:, ln.index]
+        ln_p1 = links_t.p1.loc[:, ln.index]
 
         def orig_name(l):
             return l.split("-")[1]
@@ -257,7 +260,7 @@ if __name__ == "__main__":
                 define_loss_constraints(network, snapshots)
 
         def extra_postprocessing(network, snapshots, duals):
-            if network.flow_model == "lossy":
+            if "lossy" in network.flow_model:
                 store_losses(network, snapshots, duals)
 
         n = solve_network(
