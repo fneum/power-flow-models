@@ -197,11 +197,9 @@ def ac_links_to_lines(n, lines_orig):
     n.lines_t.p1 = -n.lines_t.p0  # p0 and p1 store effective flow (received flow)
     n.lines_t["loss"] = p0 + p1 + p0_rev + p1_rev
 
-    # remove ac links (mremove caused boolean error)
-    ac_links = n.links.loc[n.links.carrier == "AC"].index
-    n.links = n.links.drop(ac_links)
-    n.links_t.p0 = n.links_t.p0.drop(n.links_t.p0.columns.intersection(ac_links), axis=1)
-    n.links_t.p1 = n.links_t.p1.drop(n.links_t.p1.columns.intersection(ac_links), axis=1)
+    n.mremove("Link", n.links.loc[n.links.carrier == "AC"].index)
+    n.links.drop(columns=["underground", "under_construction"], inplace=True) # these cause trouble when exporting as .nc
+
 
 if __name__ == "__main__":
 
