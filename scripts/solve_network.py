@@ -193,8 +193,8 @@ def ac_links_to_lines(n, lines_orig):
     n.import_components_from_dataframe(lines_orig, "Line")
 
     n.lines.s_nom_opt = lines.p_nom_opt
-    n.lines_t.p0 = p1_rev - p1
-    n.lines_t.p1 = -n.lines_t.p0  # p0 and p1 store effective flow (received flow)
+    n.lines_t["p0"] = p1_rev - p1
+    n.lines_t["p1"] = -n.lines_t.p0  # p0 and p1 store effective flow (received flow)
     n.lines_t["loss"] = p0 + p1 + p0_rev + p1_rev
 
     n.mremove("Link", n.links.loc[n.links.carrier == "AC"].index)
