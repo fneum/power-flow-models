@@ -173,7 +173,7 @@ def ac_links_to_lines(n, lines_orig):
         if reverse:
             ln = links.loc[(links.reversed == True) & (links.carrier == "AC")]
         else:
-            ln = links.loc[links.carrier == "AC"]
+            ln = links.loc[(links.reversed != True) & (links.carrier == "AC")]
 
         ln_p0 = links_t_p0.loc[:, ln.index]
         ln_p1 = links_t_p1.loc[:, ln.index]
@@ -187,7 +187,7 @@ def ac_links_to_lines(n, lines_orig):
 
         return ln, ln_p0, ln_p1
 
-    lines, p0, p1 = _get_ac_links(n)
+    lines, p0, p1 = _get_ac_links(n, reverse=False)
     lines_rev, p0_rev, p1_rev = _get_ac_links(n, reverse=True)
 
     n.import_components_from_dataframe(lines_orig, "Line")
