@@ -20,7 +20,7 @@ def memory(w):
             factor /= int(m.group(1))
             break
     if "lossy-" in w.model:
-        factor *= 0.45 * int(w.model.split("-")[-1])
+        factor *= 0.45 * int(w.model.split("-")[-2])
     return min(245000, int(factor * (10000 + 195 * int(w.clusters))))
 
 
