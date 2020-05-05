@@ -1,5 +1,5 @@
 """
-
+Plotting functions regarding the NR power flow convergence rate of subnetworks.
 """
 
 __author__ = "Fabian Neumann (KIT)"

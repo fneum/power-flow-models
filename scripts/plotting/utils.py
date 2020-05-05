@@ -1,5 +1,5 @@
 """
-
+Utility functions for plotting functionality.
 """
 
 __author__ = "Fabian Neumann (KIT)"

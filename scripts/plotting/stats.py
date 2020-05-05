@@ -1,5 +1,5 @@
 """
-
+Functions yielding statistics about solved networks.
 """
 
 __author__ = "Fabian Neumann (KIT)"

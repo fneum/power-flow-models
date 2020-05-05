@@ -1,5 +1,5 @@
 """
-
+Plotting functions to portray feasible space in loss/flow domain.
 """
 
 __author__ = "Fabian Neumann (KIT)"

@@ -1,5 +1,5 @@
 """
-
+Plotting functions regarding multiple LOPF networks at once.
 """
 
 __author__ = "Fabian Neumann (KIT)"
