@@ -141,6 +141,7 @@ def ac_lines_to_links(n):
         "s_max_pu",
         "capital_cost",
         "s_nom_max",
+        "s_nom_extendable",
     ]
     lines_lk = n.lines.loc[:, lk_attrs]
 
@@ -199,6 +200,9 @@ def ac_links_to_lines(n, lines_orig):
 
     n.mremove("Link", n.links.loc[n.links.carrier == "AC"].index)
     n.links.drop(columns=["underground", "under_construction"], inplace=True) # these cause trouble when exporting as .nc
+
+    n.calculate_dependent_values()
+    n.determine_network_topology()
 
 
 if __name__ == "__main__":
