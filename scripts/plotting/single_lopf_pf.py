@@ -46,8 +46,8 @@ def plot_loss_comparison(n, n_pf, style="hist2d", title="", fn=None, norm="max")
 
 def plot_flow_comparison(n, n_pf, style="hist2d", title="", fn=None):
 
-    pf = n_pf.lines_t.loading.stack()
-    lopf = n.lines_t.loading.stack()
+    pf = n_pf.lines_t.relative_loading.stack()
+    lopf = n.lines_t.relative_loading.stack()
 
     fig, ax = plt.subplots(figsize=(6, 5))
 
