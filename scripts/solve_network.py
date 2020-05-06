@@ -70,7 +70,7 @@ def tie_bidirectional_link_p_nom(network, snapshots):
     constraints = {
         lk: [
             [
-                (1, network.model.link_p_nom[lk.split("-")[0]]),
+                (1, network.model.link_p_nom["-".join(lk.split("-")[:2])]),
                 (-1, network.model.link_p_nom[lk]),
             ],
             "==",
