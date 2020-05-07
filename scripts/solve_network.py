@@ -36,6 +36,7 @@ pypsa.pf.logger.setLevel(logging.WARNING)
 def split_bidirectional_links(n):
 
     n.links.p_min_pu = 0
+    n.links["reversed"] = False
     rev_links = n.links.copy().rename({"bus0": "bus1", "bus1": "bus0"}, axis=1)
     rev_links.capital_cost = 0
     rev_links["reversed"] = True
@@ -70,7 +71,7 @@ def tie_bidirectional_link_p_nom(network, snapshots):
     constraints = {
         lk: [
             [
-                (1, network.model.link_p_nom["-".join(lk.split("-")[:2])]),
+                (1, network.model.link_p_nom[lk.split("-")[0]]),
                 (-1, network.model.link_p_nom[lk]),
             ],
             "==",
@@ -80,6 +81,8 @@ def tie_bidirectional_link_p_nom(network, snapshots):
     }
 
     l_constraint(network.model, "bidirectional_link", constraints, list(ext_rev_links))
+
+    print(network.model.bidirectional_link)
 
 
 def update_line_parameters(n):
@@ -151,7 +154,7 @@ def ac_lines_to_links(n):
     ]
 
     # need to ensure unique naming
-    lines_lk.index = [f"AC-{ln}" for ln in lines_lk.index]
+    lines_lk.index = [f"AC_{ln}" for ln in lines_lk.index]
 
     lines_lk["efficiency"] = lines_lk.apply(lambda ln: 1 - ln.length * 3e-5, axis=1)
 
@@ -180,7 +183,7 @@ def ac_links_to_lines(n, lines_orig):
         ln_p1 = links_t_p1.loc[:, ln.index]
 
         def orig_name(l):
-            return l.split("-")[1]
+            return l.split("-")[0].split("_")[1]
 
         ln.index = [orig_name(l) for l in ln.index]
         ln_p0.columns = [orig_name(l) for l in ln_p0.columns]
