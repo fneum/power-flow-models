@@ -82,7 +82,7 @@ def tie_bidirectional_link_p_nom(network, snapshots):
 
     l_constraint(network.model, "bidirectional_link", constraints, list(ext_rev_links))
 
-    print(network.model.bidirectional_link)
+    network.model.bidirectional_link.pprint()
 
 
 def update_line_parameters(n):
