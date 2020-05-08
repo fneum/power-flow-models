@@ -144,6 +144,7 @@ def ac_lines_to_links(n):
         "s_max_pu",
         "capital_cost",
         "s_nom_max",
+        "s_nom_min",
         "s_nom_extendable",
     ]
     lines_lk = n.lines.loc[:, lk_attrs]
