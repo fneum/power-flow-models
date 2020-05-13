@@ -134,7 +134,7 @@ def modify_link_attributes(n, lk_config):
         )
 
 
-def ac_lines_to_links(n):
+def ac_lines_to_links(n, ln_config):
 
     lk_attrs = [
         "bus0",
@@ -157,7 +157,9 @@ def ac_lines_to_links(n):
     # need to ensure unique naming
     lines_lk.index = [f"AC_{ln}" for ln in lines_lk.index]
 
-    lines_lk["efficiency"] = lines_lk.apply(lambda ln: 1 - ln.length * 3e-5, axis=1)
+    lines_lk["efficiency"] = lines_lk.apply(
+        lambda ln: 1 - ln.length * ln_config["loss_per_length"], axis=1
+    )
 
     lines_lk["p_min_pu"] = -lines_lk.p_max_pu
     lines_lk["carrier"] = "AC"
@@ -203,7 +205,9 @@ def ac_links_to_lines(n, lines_orig):
     n.lines_t["loss"] = p0 + p1 + p0_rev + p1_rev
 
     n.mremove("Link", n.links.loc[n.links.carrier == "AC"].index)
-    n.links.drop(columns=["underground", "under_construction"], inplace=True) # these cause trouble when exporting as .nc
+    n.links.drop(
+        columns=["underground", "under_construction"], inplace=True
+    )  # these cause trouble when exporting as .nc
 
     n.calculate_dependent_values()
     n.determine_network_topology()
@@ -241,7 +245,7 @@ if __name__ == "__main__":
         lines_orig = n.lines.copy()
 
         if flow_model == "lossytransport":
-            ac_lines_to_links(n)
+            ac_lines_to_links(n, config["lines"])
 
         split_bidirectional_links(n)
 
@@ -288,6 +292,7 @@ if __name__ == "__main__":
             ac_links_to_lines(n, lines_orig)
 
         update_line_parameters(n)
+        n.calculate_dependent_values()
 
         n.export_to_netcdf(snakemake.output[0])
 
