@@ -11,7 +11,7 @@ import pandas as pd
 from .utils import reference, plot_hist_helper
 
 
-def plot_flow_vs_loss(n, norm="max", style="hist2d", title="", fn=None):
+def plot_flow_vs_loss(n, norm="max", style="hist2d", vmax=100, title="", fn=None):
 
     fig, ax = plt.subplots(figsize=(6, 5))
 
@@ -22,7 +22,7 @@ def plot_flow_vs_loss(n, norm="max", style="hist2d", title="", fn=None):
     xlim = [-1, 1]
     ylim = [0, 1.1]
 
-    plot_hist_helper(ax, loading, relative_loss, xlim, ylim, vmax=100, style=style)
+    plot_hist_helper(ax, loading, relative_loss, xlim, ylim, vmax=vmax, style=style)
 
     reference(ax, *xlim, f=lambda x: x ** 2)
 
@@ -51,7 +51,7 @@ def plot_negative_marginal_prices(n, fn=None, max_mp=-0.5):
     if neg_mp.empty:
         return
 
-    fig, ax = plt.subplots(figsize=(5, 4))
+    fig, ax = plt.subplots(figsize=(4, 3))
     neg_mp.plot(ax=ax)
 
     plt.ylabel("EUR/MWh")

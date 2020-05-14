@@ -12,7 +12,9 @@ import pandas as pd
 from .utils import reference, plot_hist_helper, line_loading
 
 
-def plot_loss_comparison(n, n_pf, style="hist2d", title="", fn=None, norm="max"):
+def plot_loss_comparison(
+    n, n_pf, style="hist2d", vmax=100, title="", fn=None, norm="max"
+):
 
     fig, ax = plt.subplots(figsize=(6, 5))
 
@@ -24,7 +26,7 @@ def plot_loss_comparison(n, n_pf, style="hist2d", title="", fn=None, norm="max")
     xlim = [0, 1]
     ylim = [0, 1.2]
 
-    plot_hist_helper(ax, lopf_loss, pf_loss, xlim, ylim, style=style, vmax=100)
+    plot_hist_helper(ax, lopf_loss, pf_loss, xlim, ylim, style=style, vmax=vmax)
 
     reference(ax, *xlim, f=lambda x: x)
 
@@ -44,20 +46,20 @@ def plot_loss_comparison(n, n_pf, style="hist2d", title="", fn=None, norm="max")
         plt.savefig(fn, bbox_inches="tight")
 
 
-def plot_flow_comparison(n, n_pf, style="hist2d", title="", fn=None):
+def plot_flow_comparison(n, n_pf, style="hist2d", vmax=600, title="", fn=None):
 
     pf = n_pf.lines_t.relative_loading.stack()
     lopf = n.lines_t.relative_loading.stack()
 
     fig, ax = plt.subplots(figsize=(6, 5))
 
-    xlim = [-1.1, 1.1]
+    xlim = [-1.2, 1.2]
     ylim = [-0.8, 0.8]
 
-    plot_hist_helper(ax, pf, lopf, xlim, ylim, style=style, vmax=600)
+    plot_hist_helper(ax, pf, lopf, xlim, ylim, style=style, vmax=vmax)
 
     if style in ["hexbin", "hist2d"]:
-        cb = plt.colorbar(ax=ax, shrink=0.75)
+        cb = plt.colorbar(ax=ax, shrink=0.65)
         cb.set_label("Count")
 
     reference(ax, -1, 1)
@@ -66,7 +68,7 @@ def plot_flow_comparison(n, n_pf, style="hist2d", title="", fn=None):
     ax.set_xlim(xlim)
 
     ax.set_yticks(np.arange(ylim[0], ylim[1] + 0.1, 0.2))
-    ax.set_xticks(np.arange(xlim[0] + 0.1, xlim[1] + 0.1, 0.2))
+    ax.set_xticks(np.arange(xlim[0], xlim[1] + 0.1, 0.2))
     plt.xticks(rotation=90)
 
     ax.set_aspect(1)
@@ -82,7 +84,7 @@ def plot_flow_comparison(n, n_pf, style="hist2d", title="", fn=None):
 
 def plot_duration_curve(n, n_pf, apparent=True, fn=None):
 
-    fig, ax = plt.subplots(figsize=(5, 4))
+    fig, ax = plt.subplots(figsize=(4, 3))
 
     def duration_curve(nc, s=True, label=""):
         series = pd.Series(

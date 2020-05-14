@@ -50,8 +50,8 @@ def check_energy_transmitted(n, branch="lines"):
         .multiply(branches.length)
         .sum()
         .sum()
-        / 1e6
-    )  # TWhkm
+        / 1e12
+    )  # EWhkm
 
 
 def check_energy_generated(n):
@@ -80,7 +80,7 @@ def check_costs(n):
 
 def check_capacities(n):
 
-    return pd.concat(
+    capacities = pd.concat(
         [
             n.generators.groupby("carrier").p_nom_opt.sum() / 1e3,  # GW
             n.storage_units.groupby("carrier").p_nom_opt.sum() / 1e3,  # GW
@@ -92,6 +92,11 @@ def check_capacities(n):
             ),  # TWkm
         ]
     )
+
+    if "load" in capacities.index:
+        capacities.drop("load", inplace=True)
+
+    return capacities
 
 
 def check_flow_errors(n, n_pf):
@@ -106,7 +111,7 @@ def check_flow_errors(n, n_pf):
     mae = pf.sub(lopf).abs().mean()
     corr = pf.corr(lopf)
     r2 = corr ** 2
-    return (mse, rmse, mae, mape, corr, r2)
+    return (rmse, mae, mape, corr, r2)
 
 
 def check_slack(n_pf, logs):
