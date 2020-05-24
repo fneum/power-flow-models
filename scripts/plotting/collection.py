@@ -23,6 +23,6 @@ from .single_lopf_pf import (
     plot_flow_comparison,
     plot_loss_comparison,
 )
-from .multiple_lopf import plot_performance, plot_cost_bar, plot_capacity_correlation
+from .multiple_lopf import plot_performance, plot_cost_bar, plot_capacity_correlation, plot_price_duration_curve
 from .convergence import plot_nonconverged, convergence_share
 from .space import plot_feasible_space

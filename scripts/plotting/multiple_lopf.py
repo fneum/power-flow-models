@@ -116,3 +116,31 @@ def plot_capacity_correlation(
 
     if fn is not None:
         plt.savefig(fn, bbox_inches="tight")
+
+
+def plot_price_duration_curve(networks, model_names, ignore=[], fn=None):
+
+    fig, axs = plt.subplots(
+        1, 2, sharey=True, figsize=(10, 3), gridspec_kw={"width_ratios": [1, 5]}
+    )
+
+    for k, v in networks.items():
+        if k in ignore:
+            continue
+        y = v.buses_t.marginal_price.stack().sort_values().reset_index(drop=True)
+        y.index = [100 * i / len(y) for i in y.index]
+        for ax in axs:
+            y.plot(label=model_names[k], ax=ax)
+    
+    axs[0].set_xlim([-0.01, 0.2])
+    axs[1].set_xlim([80, 100])
+    
+    axs[0].set_ylabel("Nodal price [EUR/MWh]")
+    axs[1].set_xlabel("Share of Snapshots and Nodes [%]")
+
+    plt.tight_layout()
+    plt.legend(loc="upper left", ncol=2)
+    plt.ylim([-100, 1000])
+
+    if fn is not None:
+        plt.savefig(fn, bbox_inches="tight")
