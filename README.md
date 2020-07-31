@@ -1,4 +1,4 @@
-# Power Loss Approximations for PyPSA-Eur
+# Comparison of Power Flow and Loss Models in PyPSA-Eur
 
 With rising shares of renewables and the need to properly
 assess trade-offs between transmission, storage and sectoral integration as balancing options,
