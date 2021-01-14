@@ -37,7 +37,7 @@ for instance to determine reactive power flows and voltages or dynamic analyses.
 
 ## Usage
 
-Install common `pypsa-eur` environment.
+Install common `pypsa-eur` environment and execute snakemake workflow.
 
 ```sh
 conda activate pypsa-eur
